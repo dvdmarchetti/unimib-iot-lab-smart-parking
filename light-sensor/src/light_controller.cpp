@@ -12,7 +12,7 @@ LightController::LightController() :
 
 void LightController::setup()
 {
-  // Serial.println(F("[CONTROLLER] Setting up Leds"));
+  Serial.println(F("[CONTROLLER] Setting up Leds"));
   _light_array
     .add(LED_PIN_1)
     .add(LED_PIN_2)
@@ -26,10 +26,11 @@ void LightController::setup()
   _wifi_manager.begin();
   _wifi_manager.ensure_wifi_is_connected();
 
-  this->setupMqtt();
+  this->setup_mqtt();
 }
 
-void LightController::setupMqtt() {
+void LightController::setup_mqtt()
+{
   Serial.println(F("[CONTROLLER] Setting up MQTT"));
 
   // Create last_will payload (same as config payload)
@@ -84,7 +85,7 @@ void LightController::fsm_loop()
         String payload;
         this->device_payload(payload);
 
-        Serial.print("[CONTROLLER] Requesting configuration: ");
+        Serial.print(F("[CONTROLLER] Requesting configuration: "));
         Serial.println(payload);
 
         _mqtt_writer.connect().publish(MQTT_TOPIC_GLOBAL_CONFIG, payload, false, 2);
@@ -93,8 +94,8 @@ void LightController::fsm_loop()
         _light_array.on(LED_PIN_1);
         _light_array.on(LED_PIN_3);
         _light_array.on(LED_PIN_5);
-        break;
       }
+      break;
 
     case OFF:
       _light_array.off();
@@ -168,7 +169,7 @@ void LightController::onMessageReceived(const String &topic, const String &paylo
     _topic_commands = doc["topicToSubscribe"].as<String>();
     _topic_values = doc["topicToPublish"].as<String>();
 
-    _mqtt_reader.subscribe(_topic_commands);
+    _mqtt_reader.reconnect().subscribe(_topic_commands);
 
     if (doc.containsKey("mqttPushCooldown")) {
       _mqtt_push_cooldown = doc["mqttPushCooldown"];

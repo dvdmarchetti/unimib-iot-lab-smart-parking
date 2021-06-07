@@ -38,7 +38,7 @@ private:
   // Sensor readings
   uint16_t _light_amount = 0;
 
-  void setupMqtt();
+  void setup_mqtt();
   void onMessageReceived(const String &topic, const String &payload);
 
   void read_sensors();
