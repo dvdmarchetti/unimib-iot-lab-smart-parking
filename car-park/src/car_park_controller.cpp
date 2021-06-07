@@ -66,15 +66,13 @@ bool CarParkController::is_enabled()
 }
 
 void CarParkController::read_sensors() {
-  static float last_distance = 100;
-
   if (_current_state == OFF || _current_state == WAIT_CONFIGURATION) {
     return;
   }
 
-  last_distance = _ps->getDistance();
+  _distance = _ps->getDistance();
   Serial.print(F("[CONTROLLER] Distance: "));
-  Serial.println(last_distance);
+  Serial.println(_distance);
 }
 
 void CarParkController::fsm_loop()
@@ -161,13 +159,13 @@ void CarParkController::send_mqtt_data()
   doc[JSON_KEY_DEVICE_MAC] = DEVICE_MAC_ADDRESS;
   doc[JSON_KEY_DEVICE_TYPE] = DEVICE_TYPE;
   doc[JSON_KEY_CAR_PARK_BUSY] = state;
-  doc[JSON_KEY_CAR_PARK_ON_OFF] = status;
+  doc[JSON_KEY_CAR_PARK_ON_OFF] = status.c_str();
 
   String payload;
   serializeJson(doc, payload);
   Serial.println(payload);
 
-  _mqtt_writer.connect().publish(_topic_commands, payload);
+  _mqtt_writer.connect().publish(_topic_values, payload);
 }
 
 void CarParkController::onMessageReceived(const String &topic, const String &payload)

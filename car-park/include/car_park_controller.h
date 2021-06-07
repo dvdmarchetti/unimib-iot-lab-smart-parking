@@ -44,7 +44,7 @@ private:
     unsigned long _free_for;
     bool _is_away = false;
     long _time;
-    int _distance;
+    float _distance = 100;
     int _period;
 
     void setup_mqtt();
