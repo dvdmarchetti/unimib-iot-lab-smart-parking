@@ -1,2 +1,8 @@
 .vscode/
+<<<<<<< HEAD
 .DS_Store
+=======
+build/
+.DS_Store
+secrets.h
+>>>>>>> 4d4fcaaf1bc01af8120e0407e07f7cc6945e420a
