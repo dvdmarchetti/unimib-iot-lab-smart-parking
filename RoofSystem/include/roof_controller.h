@@ -19,6 +19,7 @@ private:
     // Services
     WiFiManager _wifi_manager;
     MqttWrapper _mqtt_reader;
+    MqttWrapper _mqtt_writer;
     ServoMotor _servo;
 
     // State

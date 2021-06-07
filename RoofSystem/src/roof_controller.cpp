@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 
 RoofController::RoofController() : _mqtt_reader(MqttWrapper("Reader", MQTT_BROKERIP, MQTT_CLIENTID_READER, MQTT_USERNAME, MQTT_PASSWORD)),
-                                   //_mqtt_writer(MqttWrapper("Writer", MQTT_BROKERIP, MQTT_CLIENTID_WRITER, MQTT_USERNAME, MQTT_PASSWORD)),
+                                   _mqtt_writer(MqttWrapper("Writer", MQTT_BROKERIP, MQTT_CLIENTID_WRITER, MQTT_USERNAME, MQTT_PASSWORD)),
                                    _servo(ServoMotor(SERVO_PIN))
 {
     //
@@ -29,7 +29,7 @@ void RoofController::setupMqtt()
     String payload;
     this->device_payload(payload);
 
-    //_mqtt_writer.begin().connect();
+    _mqtt_writer.begin().connect();
 
     _mqtt_reader.begin()
         .setLastWill("smpk/last-will", payload)
@@ -65,7 +65,7 @@ void RoofController::fsm_loop()
             Serial.print("[CONTROLLER] Requesting configuration: ");
             Serial.println(payload);
 
-            //_mqtt_writer.connect().publish(MQTT_TOPIC_GLOBAL_CONFIG, payload, false, 2);
+            _mqtt_writer.connect().publish(MQTT_TOPIC_GLOBAL_CONFIG, payload, false, 2);
             _has_requested_configuration = true;
 
             break;

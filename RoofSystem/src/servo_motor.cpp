@@ -1,15 +1,9 @@
-#include "include/roof_controller.h"
+#include "../include/servo_motor.h"
 
-WiFiClient _wifi_clnt;
-RoofController controller;
-
-void setup()
-{
-    Serial.begin(115200);
-    controller.setup();
+ServoMotor::ServoMotor(int pin) {
+    servo.attach(pin);
 }
 
-void loop()
-{
-    controller.loop();
+void ServoMotor::move(int degree) {
+    servo.write(degree);
 }

@@ -1,19 +1,18 @@
-#include "include/servo_motor.h"
-#define PIN D4
-ServoMotor *servoMotor;
+#include "include/roof_controller.h"
 
-void setup() {
+WiFiClient _wifi_clnt;
+RoofController controller;
+
+void setup()
+{
   Serial.begin(115200);
 
-  servoMotor = new ServoMotor(PIN);
+  controller.setup();
 
-  Serial.println(F("\n\nSetup completed.\n\n"));
+  Serial.println("[CONTROLLER] End of setup.");
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-  servoMotor->move(0);
-  delay(1000);
-  servoMotor->move(180);
-  delay(1000);
+void loop()
+{
+  controller.loop();
 }
