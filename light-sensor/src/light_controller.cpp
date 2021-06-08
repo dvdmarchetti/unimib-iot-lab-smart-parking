@@ -40,7 +40,7 @@ void LightController::setup_mqtt()
   _mqtt_writer.begin().connect();
 
   _mqtt_reader.begin()
-    .setLastWill("smpk/last-will", payload)
+    .setLastWill(MQTT_TOPIC_DEVICE_LAST_WILL, payload)
     .onMessageReceived(this, &MqttReceiver::onMessageReceived)
     .connect().subscribe(MQTT_TOPIC_DEVICE_CONFIG, 2);
 }
