@@ -6,6 +6,7 @@
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
 
+#include "../config.h"
 #include "wifi_manager.h"
 #include "telegram_receiver.h"
 
@@ -14,9 +15,10 @@ class TelegramManager {
 public:
     TelegramManager();
 
-    void setup();
-    void onMessageReceived(TelegramReceiver *object, TelegramMsgCallback callback);
-    void listen();
+    TelegramManager& setup();
+    TelegramManager& onMessageReceived(TelegramReceiver *object, TelegramMsgCallback callback);
+    TelegramManager& listen();
+    TelegramManager& sendMessage(const String &chat_id, const String &message);
 
 private:
     WiFiManager _wifi_manager;
@@ -24,7 +26,10 @@ private:
     UniversalTelegramBot _bot;
 
     unsigned long _bot_lasttime;
-    std::function<void(const String &)> _callback;
+    std::function<void(const String &, const String &)> _callback;
+
+    void handleMessage(int newMessages);
+
 };
 
 #endif // __TELEGRAM_MANAGER__

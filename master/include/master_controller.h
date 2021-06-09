@@ -32,6 +32,7 @@ private:
     MqttWrapper _mqtt_reader;
     MqttWrapper _mqtt_writer;
     WiFiManager _wifi_manager;
+    TelegramManager _telegram_manager;
 
     // Objects
     std::map<String, std::vector<uint>> _light_values;
@@ -67,7 +68,7 @@ private:
     void substituteDisplayLine(String &out, String in);
 
     //Telegram
-    void onTelegramMessageReceived(const String &message);
+    void onTelegramMessageReceived(const String &chat_id, const String &message);
 };
 
 #endif // MASTER_CONTROLLER_HPP_
