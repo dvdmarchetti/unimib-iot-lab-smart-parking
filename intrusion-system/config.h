@@ -1,19 +1,26 @@
-#define LED_PIN_1 D2
-#define LED_PIN_2 D3
-#define LED_PIN_3 D5
-#define LED_PIN_4 D6
-#define LED_PIN_5 D7
-#define LED_PIN_6 D8
+#pragma once
 
-#define PHOTORESISTOR_PIN A0
+#define PIN_BUZZER D2
+#define PIN_PIR D7
+#define LED_ESP8266 LED_BUILTIN_AUX
+#define PIN_INFO_LED D1
+
+#define INTRUSION_SYSTEM_PERIOD 500
+
+#define PIR_SETUP_PERIOD 60000
+
+#define BLINK_INTERVAL 500
 
 // Json payloads
 #define JSON_KEY_DEVICE_MAC "mac"
 #define JSON_KEY_DEVICE_TYPE "type"
 
+#define JSON_KEY_CAR_PARK_BUSY "busy"
+#define JSON_KEY_CAR_PARK_ON_OFF "status"
+
 // Mqtt
-#define DEVICE_MAC_ADDRESS "8c:aa:b5:7d:02:01"
-#define DEVICE_TYPE "light"
+#define DEVICE_MAC_ADDRESS "40:f5:20:05:63:1e"
+#define DEVICE_TYPE "intrusion"
 
 #define MQTT_CLIENTID_WRITER DEVICE_MAC_ADDRESS "_writer"
 #define MQTT_CLIENTID_READER DEVICE_MAC_ADDRESS "_reader"
