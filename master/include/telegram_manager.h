@@ -28,7 +28,7 @@ private:
     unsigned long _bot_lasttime;
     std::function<void(const String &, const String &)> _callback;
 
-    void handleMessage(int newMessages);
+    void handle_messages(int newMessages);
 
 };
 

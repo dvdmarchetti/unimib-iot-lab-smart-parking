@@ -36,7 +36,7 @@ TelegramManager& TelegramManager::listen()
     int numNewMessages = _bot.getUpdates(_bot.last_message_received + 1);
 
     while (numNewMessages) {
-        handle_message(numNewMessages);
+        handle_messages(numNewMessages);
         numNewMessages = _bot.getUpdates(_bot.last_message_received + 1);
     }
 
@@ -56,7 +56,7 @@ TelegramManager& TelegramManager::sendMessage(const String &chat_id, const Strin
 
 void TelegramManager::handle_messages(int numMessages) 
 {
-    for (int i = 0; i < numNewMessages; i++) {
+    for (int i = 0; i < numMessages; i++) {
         _callback(_bot.messages[i].chat_id, _bot.messages[i].text);
     }
 }
