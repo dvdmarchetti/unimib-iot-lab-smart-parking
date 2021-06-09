@@ -452,6 +452,10 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
     }
 }
 
+void MasterController::onTelegramMessageReceived(const String &message) {
+    return;
+}
+
 boolean MasterController::getConfiguration(StaticJsonDocument<512> &config, String type)
 {
     String strConfig = MySqlWrapper::getInstance().getDeviceConfiguration(type);

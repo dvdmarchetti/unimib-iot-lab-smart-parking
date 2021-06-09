@@ -12,10 +12,12 @@
 #include "mysql_wrapper.h"
 #include "mqtt_receiver.h"
 #include "mqtt_wrapper.h"
+#include "telegram_manager.h"
+#include "telegram_receiver.h"
 
 #include "../dashboard.h"
 
-class MasterController : MqttReceiver
+class MasterController : public MqttReceiver, public TelegramReceiver
 {
 public:
     MasterController();
@@ -63,6 +65,9 @@ private:
 
     // Utils for display rows
     void substituteDisplayLine(String &out, String in);
+
+    //Telegram
+    void onTelegramMessageReceived(const String &message);
 };
 
 #endif // MASTER_CONTROLLER_HPP_

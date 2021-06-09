@@ -38,3 +38,6 @@
 
 // Push values
 #define PUSH_LIGHT_VALUES_PERIOD 300000 // 5 minutes.
+
+// Telegram
+#define BOT_MTBS 1000 // mean time between scan messages
