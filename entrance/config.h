@@ -1,0 +1,19 @@
+#define SS_PIN D8
+#define RST_PIN D3
+
+#define PHOTORESISTOR_PIN A0
+
+// Json payloads
+#define JSON_KEY_DEVICE_MAC "mac"
+#define JSON_KEY_DEVICE_TYPE "type"
+
+// Mqtt
+#define DEVICE_MAC_ADDRESS "BA:E6:2D:28:EE:66"
+#define DEVICE_TYPE "rfid"
+
+#define MQTT_CLIENTID_WRITER DEVICE_MAC_ADDRESS "_writer"
+#define MQTT_CLIENTID_READER DEVICE_MAC_ADDRESS "_reader"
+
+#define MQTT_TOPIC_GLOBAL_CONFIG "smpk/configurations"
+#define MQTT_TOPIC_DEVICE_CONFIG MQTT_TOPIC_GLOBAL_CONFIG "/" DEVICE_MAC_ADDRESS
+#define MQTT_TOPIC_DEVICE_LAST_WILL "smpk/will/" DEVICE_MAC_ADDRESS
