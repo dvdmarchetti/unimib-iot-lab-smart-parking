@@ -17,6 +17,10 @@ void MasterController::setup()
     this->register_routes();
     _server.begin();
 
+    Serial.println(F("[CONTROLLER] Setting up telegram bot"));
+    _telegram_manager.setup()
+        .onMessageReceived(this, &TelegramReceiver::onTelegramMessageReceived);
+
     this->setup_mqtt();
 
     _last_push = millis();
@@ -47,6 +51,9 @@ void MasterController::loop()
 
     // Mqtt listen for incoming messages
     _mqtt_reader.reconnect().listen();
+
+    // Telegram bot handling
+    _telegram_manager.listen();
 
     // Master loop (Influx push)
     this->masterLoop();
@@ -450,6 +457,11 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
         sprintf(event, DEVICE_DISCONNECTED_EVENT, mac_address.c_str(), type.c_str());
         MySqlWrapper::getInstance().insertEvent(DEVICE_EVENT_CATEGORY, String(event), mac_address);
     }
+}
+
+void MasterController::onTelegramMessageReceived(const String &chat_id, const String &message) {
+    // TODO: message and action handling.
+    return;
 }
 
 boolean MasterController::getConfiguration(StaticJsonDocument<512> &config, String type)

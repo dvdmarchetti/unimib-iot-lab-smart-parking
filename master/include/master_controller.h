@@ -12,10 +12,12 @@
 #include "mysql_wrapper.h"
 #include "mqtt_receiver.h"
 #include "mqtt_wrapper.h"
+#include "telegram_manager.h"
+#include "telegram_receiver.h"
 
 #include "../dashboard.h"
 
-class MasterController : MqttReceiver
+class MasterController : public MqttReceiver, public TelegramReceiver
 {
 public:
     MasterController();
@@ -30,6 +32,7 @@ private:
     MqttWrapper _mqtt_reader;
     MqttWrapper _mqtt_writer;
     WiFiManager _wifi_manager;
+    TelegramManager _telegram_manager;
 
     // Objects
     std::map<String, std::vector<uint>> _light_values;
@@ -63,6 +66,9 @@ private:
 
     // Utils for display rows
     void substituteDisplayLine(String &out, String in);
+
+    //Telegram
+    void onTelegramMessageReceived(const String &chat_id, const String &message);
 };
 
 #endif // MASTER_CONTROLLER_HPP_
