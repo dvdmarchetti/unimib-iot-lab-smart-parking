@@ -20,10 +20,15 @@ void RfidReader::loop()
 
   String serial;
   dump_byte_array(_reader.uid.uidByte, _reader.uid.size, serial);
-  // Serial.print("[RFID] CardID=");
-  // Serial.println(serial);
+  Serial.print("[RFID] CardID=");
+  Serial.println(serial);
 
   _callback(serial);
+}
+
+void RfidReader::halt()
+{
+  _reader.PICC_HaltA();
 }
 
 void RfidReader::onCardAvailable(RfidReceiver *object, RfidCallback callback)

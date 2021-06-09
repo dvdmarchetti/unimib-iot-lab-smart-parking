@@ -3,13 +3,13 @@
 
 #include <ArduinoJson.h>
 #include "../config.h"
-#include "mqtt_receiver.h"
-#include "mqtt_wrapper.h"
 #include "wifi_manager.h"
 #include "mqtt_receiver.h"
+#include "mqtt_wrapper.h"
 #include "rfid_receiver.h"
 #include "rfid_reader.h"
-#include "servo_motor.h"
+#include "display.h"
+// #include "servo_motor.h"
 
 #define ENTRANCE_JSON_BUFFER_SIZE 256
 
@@ -27,13 +27,17 @@ private:
   MqttWrapper _mqtt_reader;
   MqttWrapper _mqtt_writer;
   RfidReader _reader;
-  Servo _gate;
+  Display _display;
+  // Servo _gate;
 
   // State
   enum State { WAIT_CONFIGURATION, OFF, ON, MANAGE };
   State _current_state = WAIT_CONFIGURATION;
   enum ManageState { WAIT_MASTER, ACTIVE, CHECKING };
   ManageState _manage_state = WAIT_MASTER;
+
+  // Display handling
+  ulong _hold_display = 0;
 
   // Dynamic configuration
   bool _has_requested_configuration = false;
@@ -47,9 +51,8 @@ private:
 
   void read_sensors();
   void fsm_loop();
+  void update_display();
   void manage_fsm_loop(StaticJsonDocument<ENTRANCE_JSON_BUFFER_SIZE> &doc);
-
-  void send_mqtt_data();
 
   void device_payload(String &destination);
 };

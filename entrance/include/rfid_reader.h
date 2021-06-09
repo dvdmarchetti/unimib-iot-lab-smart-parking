@@ -12,6 +12,7 @@ public:
 
   void setup();
   void loop();
+  void halt();
   void onCardAvailable(RfidReceiver *object, RfidCallback callback);
 
 private:
