@@ -55,3 +55,5 @@
 
 #define NOTIFICATION_INTRUSION_MESSAGE "Intrusion detected --> Alarm on!"
 #define ROOF_CLOSED_MESSAGE "Rooftop window has been closed!"
+#define NOTIFICATION_ON_MESSAGE "Subscribed to smart parking notification!"
+#define NOTIFICATION_OFF_MESSAGE "Unsubscribed to smart parking notification!"

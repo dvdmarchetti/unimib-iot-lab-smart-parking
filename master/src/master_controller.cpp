@@ -587,8 +587,10 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
 		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "");
 	} else if (message.equals(NOTIFICATIONS_ON_COMMAND)) {
 		_id_to_notify.insert(chat_id);
+		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, NOTIFICATION_ON_MESSAGE, "");
 	} else if (message.equals(NOTIFICATIONS_OFF_COMMAND)) {
 		_id_to_notify.erase(chat_id);
+		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, NOTIFICATION_OFF_MESSAGE, "");
 	} else if (message.equals(HELP_COMMAND)) {
 		String response = "Welcome to Smart Parking Telegram Bot, " + from + ".\n";
 		response += "Commands:\n\n";
