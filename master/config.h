@@ -36,9 +36,19 @@
 
 // Telegram
 #define BOT_MTBS 1000 // mean time between scan messages
-#define ALARM_ON_COMMAND "/alarm_on"
-#define ALARM_OFF_COMMAND "/alarm_off"
+#define ALARM_ON_COMMAND "/alarm\_on"
+#define ALARM_OFF_COMMAND "/alarm\_off"
 #define AVAILABILITY_COMMAND "/availability"
 #define REGISTER_CARD_COMMAND "/register_card"
-#define PARKING_INFO_COMMAND "/parking_info"
+#define PARKING_INFO_COMMAND "/parking\_info"
+#define NOTIFICATIONS_ON_COMMAND "/notifications\_on"
+#define NOTIFICATIONS_OFF_COMMAND "/notifications\_off"
 #define HELP_COMMAND "/help"
+
+#define ALARM_ON_COMMAND_DESCRPTION "switch alarm ON"
+#define ALARM_OFF_COMMAND_DESCRPTION "switch alarm OFF"
+#define AVAILABILITY_COMMAND_DESCRPTION "car-park availability"
+#define REGISTER_CARD_COMMAND_DESCRPTION "information about registration of new RFID cards"
+#define PARKING_INFO_COMMAND_DESCRPTION "information parking status"
+#define NOTIFICATIONS_ON_COMMAND_DESCRPTION "subscribe to channel's push notifications"
+#define NOTIFICATIONS_OFF_COMMAND_DESCRPTION "unsubscribe to channel's push notifications"

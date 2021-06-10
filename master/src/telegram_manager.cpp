@@ -48,10 +48,28 @@ TelegramManager &TelegramManager::sendMessage(const String &chat_id, const Strin
 {
   bool isMessageSent = _bot.sendMessage(chat_id, message, parseMode);
 
-  if (isMessageSent) Serial.println("[TELEGRAM MANAGER] Message successfully sent");
-  else Serial.println("[TELEGRAM MANAGER] Error dutring message sending");
+  if (isMessageSent) Serial.println(F("[TELEGRAM MANAGER] Message successfully sent"));
+  else Serial.println(F("[TELEGRAM MANAGER] Error dutring message sending"));
 
   return *this;
+}
+
+TelegramManager& TelegramManager::sendMessageWithReplyKeyboard(const String &chat_id, const String &message, const String &parseMode, bool resize, bool oneTime, bool selective)
+{
+    bool isMessageSent = _bot.sendMessageWithReplyKeyboard(
+        chat_id, 
+        message, 
+        parseMode, 
+        build_reply_keyboard(), 
+        resize, 
+        oneTime, 
+        selective
+    );
+
+    if (isMessageSent) Serial.println(F("[TELEGRAM MANAGER] Message successfully sent"));
+    else Serial.println(F("[TELEGRAM MANAGER] Error dutring message sending"));
+
+    return *this;
 }
 
 void TelegramManager::handle_messages(int numMessages)
@@ -59,4 +77,15 @@ void TelegramManager::handle_messages(int numMessages)
   for (int i = 0; i < numMessages; i++) {
     _callback(_bot.messages[i].chat_id, _bot.messages[i].text, _bot.messages[i].from_name);
   }
+}
+
+String TelegramManager::build_reply_keyboard() 
+{
+    String keyboard = "[";
+    keyboard += "[\"" + String(ALARM_ON_COMMAND) +"\", \"" + String(ALARM_OFF_COMMAND) + "\"]";
+    keyboard += "[\"" + String(NOTIFICATIONS_ON_COMMAND) + "\", \"" + String(NOTIFICATIONS_OFF_COMMAND) + "\"]";
+    keyboard += "[\"" + String(AVAILABILITY_COMMAND) + "\", \"" + String(PARKING_INFO_COMMAND) + "\"]";
+    keyboard += "[\"" + String(HELP_COMMAND) + "\"]";
+    keyboard += "]";
+    return keyboard;
 }

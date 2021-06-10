@@ -19,8 +19,9 @@ public:
   TelegramManager& onMessageReceived(TelegramReceiver *object, TelegramMsgCallback callback);
   TelegramManager& listen();
   TelegramManager& sendMessage(const String &chat_id, const String &message, const String &parseMode);
+  TelegramManager& sendMessageWithReplyKeyboard(const String &chat_id, const String &message, const String &parseMode, bool resize = false, bool oneTime = false, bool selective = false);
 
-private:
+  private:
   WiFiManager _wifi_manager;
   WiFiClientSecure _secured_client;
   UniversalTelegramBot _bot;
@@ -29,7 +30,7 @@ private:
   std::function<void(const String &, const String &, const String &)> _callback;
 
   void handle_messages(int newMessages);
-
+  String build_reply_keyboard();
 };
 
 #endif // __TELEGRAM_MANAGER__

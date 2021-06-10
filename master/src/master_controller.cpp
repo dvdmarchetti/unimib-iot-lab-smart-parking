@@ -475,14 +475,16 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 
 void MasterController::onTelegramMessageReceived(const String &chat_id, const String &message, const String &from)
 {
-  String command_list = " > " + String(ALARM_ON_COMMAND) + ": switch alarm ON\n";
-  command_list += " > " + String(ALARM_OFF_COMMAND) + ": switch alarm OFF\n";
-  command_list += " > " + String(AVAILABILITY_COMMAND) + ": car-park availability\n";
-  command_list += " > " + String(REGISTER_CARD_COMMAND) + ": information about registration of new RFID cards\n";
-  command_list += " > " + String(PARKING_INFO_COMMAND) + ": information parking status\n";
+	String command_list = ""	;	
+	command_list += "		> " + String(ALARM_ON_COMMAND) + ": " + String(ALARM_ON_COMMAND_DESCRPTION) + "\n";
+	command_list += "		> " + String(ALARM_OFF_COMMAND) + ": " + String(ALARM_OFF_COMMAND_DESCRPTION) + "\n";
+	command_list += " 	> " + String(AVAILABILITY_COMMAND) + ": " + String(AVAILABILITY_COMMAND_DESCRPTION) + "\n";
+	command_list += " 	> " + String(NOTIFICATIONS_ON_COMMAND) + ": " + String(NOTIFICATIONS_ON_COMMAND_DESCRPTION) + "\n";
+	command_list += " 	> " + String(NOTIFICATIONS_OFF_COMMAND) + ": " + String(NOTIFICATIONS_OFF_COMMAND_DESCRPTION) +"\n";
+	//command_list += " > " + String(REGISTER_CARD_COMMAND) + ": " + String(REGISTER_CARD_COMMAND_DESCRIPTION) + "\n";
+	command_list += " 	> " + String(PARKING_INFO_COMMAND) + ": " + String(PARKING_INFO_COMMAND_DESCRPTION) + "\n";
 
-  // TODO: message and action handling.
-  if (message.equals(ALARM_ON_COMMAND)) {
+	if (message.equals(ALARM_ON_COMMAND)) {
     StaticJsonDocument<256> doc;
     StaticJsonDocument<512> config;
     this->getConfiguration(config, DEVICE_INTRUSION_TYPE);
@@ -532,25 +534,66 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
     }
 
     String message = "Availability: " + String(available) + "/" + String(total);
-    _telegram_manager.sendMessage(chat_id, message, "");
+    _telegram_manager.sendMessageWithReplyKeyboard(chat_id, message, "");
   } else if (message.equals(REGISTER_CARD_COMMAND)) {
-    //
+    // TODO
   } else if (message.equals(PARKING_INFO_COMMAND)) {
+    String response = "Smart Parking status:\n";
 
-  } else if (message.equals(HELP_COMMAND)) {
-    String welcome = "Welcome to Smart Parking Telegram Bot, " + from + ".\n";
+		uint available = 0, total = 0;
+		auto it = _car_park_busy.begin();
+		while (it != _car_park_busy.end()) {
+			if (!it->second) {
+				available++;
+			}
+			total++;
+			it++;
+		}
+
+		response += "		> Availability: " + String(available) + "/" + String(total) + "\n";
+
+		auto it_light = _light_status.begin();
+		while (it_light != _light_status.end()) {
+			String status = it_light->second ? "on" : "off";
+			response += "		> Light " + it_light->first + ": " + status + "\n";
+			it_light++;
+		}
+
+		auto it_alarm = _alarm_status.begin();
+		auto it_intrusion = _intrusion_detected.begin();
+		while (it_alarm != _alarm_status.end() && it_intrusion != _intrusion_detected.end()) {
+			String status = it_alarm->second == 1 ? "on" : "off";
+			String intrusion_status = it_intrusion->second ? "true" : "false";
+			response += "		> Alarm " + it_alarm->first + ": " + status + "\n";
+			response += "				> Intrusion: " + intrusion_status + "\n";
+			it_alarm++;
+			it_intrusion++;
+		}
+
+		auto it_roof = _roof_status.begin();
+		while (it_roof != _roof_status.end()) {
+			String status = it_roof->second == 1 ? "open" : "close";
+			response += "		> Roof window " + it_roof->first + ": " + status + "\n";
+			it_roof++;
+		}
+
+		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "Markdown");
+	} else if (message.equals(NOTIFICATIONS_ON_COMMAND)) {
+		_id_to_notify.insert(chat_id);
+	} else if (message.equals(NOTIFICATIONS_OFF_COMMAND)) {
+		_id_to_notify.erase(chat_id);
+	} else if (message.equals(HELP_COMMAND)) {
+		String welcome = "Welcome to Smart Parking Telegram Bot, " + from + ".\n";
     welcome += "Commands:\n\n";
     welcome += command_list;
 
-    _telegram_manager.sendMessage(chat_id, welcome, "Markdown");
-  } else {
-    String response = "Command not recognized! Possible commands:\n";
+    _telegram_manager.sendMessageWithReplyKeyboard(chat_id, welcome, "Markdown");
+	} else {
+		String response = "Command not recognized! Possible commands:\n";
     response += command_list;
 
-    _telegram_manager.sendMessage(chat_id, response, "Markdown");
-  }
-
-  return;
+    _telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "Markdown");
+	}
 }
 
 boolean MasterController::getConfiguration(StaticJsonDocument<512> &config, String type)

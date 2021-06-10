@@ -46,6 +46,9 @@ private:
   std::map<String, bool> _intrusion_detected;
   std::map<String, uint> _roof_status;
 
+  // Notification chat_id set
+  std::set<String> _id_to_notify;
+
   unsigned long _last_push;
   String _display_first_row = "~Smart Parking~", _display_second_row = "Available: {{slots}}";
 
