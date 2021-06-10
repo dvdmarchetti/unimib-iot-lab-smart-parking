@@ -119,11 +119,14 @@ void EntranceController::update_display()
   }
   last_execution = current_time;
 
-  if (current_time - _hold_display < 2000) {
+  if (millis() - 2000 < _hold_display) {
     return;
   }
 
-  _display.turnOn();
+  if (_display.isOff()) {
+    _display.turnOn();
+  }
+
   switch (_current_state) {
     case WAIT_CONFIGURATION:
       _display.writeFirstRow("SMART PARKING");

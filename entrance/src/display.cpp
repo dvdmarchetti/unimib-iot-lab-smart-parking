@@ -45,14 +45,26 @@ void Display::clear()
   _lcd.clear();
 }
 
+bool Display::isOff()
+{
+  return _state == OFF;
+}
+
+bool Display::isOn()
+{
+  return _state == ON;
+}
+
 void Display::turnOff()
 {
+  _state = OFF;
   _lcd.noDisplay();
   _lcd.setBacklight(0);
 }
 
 void Display::turnOn()
 {
+  _state = ON;
   _lcd.display();
   _lcd.setBacklight(50);
 }

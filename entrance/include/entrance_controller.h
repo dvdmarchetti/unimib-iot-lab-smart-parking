@@ -37,6 +37,7 @@ private:
   ManageState _manage_state = WAIT_MASTER;
 
   // Display handling
+  bool _repaint = false;
   ulong _hold_display = 0;
 
   // Dynamic configuration

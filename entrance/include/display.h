@@ -18,11 +18,16 @@ public:
   void writeFirstRow(const String &line);
   void writeSecondRow(const String &line);
   void clear();
+  bool isOn();
+  bool isOff();
   void turnOff();
   void turnOn();
 
 private:
   LiquidCrystal_I2C _lcd;
+
+  enum State { ON, OFF };
+  State _state = OFF;
 };
 
 #endif
