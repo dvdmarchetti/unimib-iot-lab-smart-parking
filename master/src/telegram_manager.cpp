@@ -72,6 +72,15 @@ TelegramManager& TelegramManager::sendMessageWithReplyKeyboard(const String &cha
     return *this;
 }
 
+TelegramManager& TelegramManager::sendNotification(std::set<String> ids, const String &message, const String &parseMode)
+{
+    for (auto id : ids) {
+        sendMessageWithReplyKeyboard(id, message, parseMode);
+    }
+
+    return *this;
+}
+
 void TelegramManager::handle_messages(int numMessages)
 {
   for (int i = 0; i < numMessages; i++) {

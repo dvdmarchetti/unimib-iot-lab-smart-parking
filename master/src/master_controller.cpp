@@ -441,6 +441,9 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       String status = doc["status"].as<String>();
       _alarm_status[mac_address] = status == "on" ? 1 : 0;
       _intrusion_detected[mac_address] = doc["intrusion"].as<uint>();
+
+			String message = String(NOTIFICATION_INTRUSION_MESSAGE);
+			_telegram_manager.sendNotification(_id_to_notify, message, "");
     } else {
       Serial.println("Device type not recognized");
     }
@@ -649,4 +652,29 @@ void MasterController::substituteDisplayLine(String &out, String in)
 
   out = in;
   out.replace("{{slots}}", String(available));
+}
+
+void MasterController::closeRoof()
+{
+	StaticJsonDocument<256> doc;
+	StaticJsonDocument<512> config;
+	this->getConfiguration(config, DEVICE_ROOF_TYPE);
+
+	doc["command"] = 0;
+
+	String payload;
+	serializeJson(doc, payload);
+
+	for (auto device : _roof_status)
+	{
+		_roof_status[device.first] = 0;
+
+		// Push command to each device through MQTT
+		char deviceTopic[128];
+		sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
+		_mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
+	}
+
+	// Push notification through telegram bot
+	_telegram_manager.sendNotification(_id_to_notify, String(ROOF_CLOSED_MESSAGE), "");
 }

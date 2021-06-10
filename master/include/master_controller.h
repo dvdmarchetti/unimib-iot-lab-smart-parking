@@ -77,6 +77,9 @@ private:
 
   //Telegram
   void onTelegramMessageReceived(const String &chat_id, const String &message, const String &from);
+
+  // Utils
+  void closeRoof();
 };
 
 #endif // MASTER_CONTROLLER_HPP_
