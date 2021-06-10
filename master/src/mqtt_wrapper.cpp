@@ -75,6 +75,7 @@ MqttWrapper& MqttWrapper::subscribe(const String topic, int qos)
 MqttWrapper& MqttWrapper::subscribeAll()
 {
   this->connect();
+
   while (!_subscribe_queue.empty())
   {
     subscribe_packet packet = _subscribe_queue.front();
@@ -89,18 +90,18 @@ MqttWrapper& MqttWrapper::subscribeAll()
   }
 }
 
-MqttWrapper& MqttWrapper::enqueuePublishMessage(const String topic, const String message, bool retained, int qos) 
+MqttWrapper& MqttWrapper::enqueuePublishMessage(const String topic, const String message, bool retained, int qos)
 {
   _publish_queue.push(publish_packet{topic, message, retained, qos});
   return *this;
 }
 
-MqttWrapper& MqttWrapper::publish(const String topic, const String msg, bool retained, int qos) 
+MqttWrapper& MqttWrapper::publish(const String topic, const String msg, bool retained, int qos)
 {
   _mqttClient.publish(topic, msg, retained, qos);
 }
 
-MqttWrapper& MqttWrapper::publishAll() 
+MqttWrapper& MqttWrapper::publishAll()
 {
   this->connect();
   while (!_publish_queue.empty())
