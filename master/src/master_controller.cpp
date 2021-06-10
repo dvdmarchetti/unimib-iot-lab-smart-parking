@@ -46,11 +46,12 @@ void MasterController::loop()
   _server.handleClient();
 
   // Mqtt publish/subscribe
-  _mqtt_reader.subscribeAll();
+  _mqtt_reader.reconnect().subscribeAll();
   _mqtt_writer.publishAll();
 
-  // Mqtt listen for incoming messages
+  // Mqtt listen for incoming messages && Keep-alive
   _mqtt_reader.reconnect().listen();
+  _mqtt_writer.reconnect().listen();
 
   // Telegram bot handling
   _telegram_manager.listen();
@@ -478,7 +479,7 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 
 void MasterController::onTelegramMessageReceived(const String &chat_id, const String &message, const String &from)
 {
-	String command_list = "";	
+	String command_list = "";
 	command_list += "		> " + String(ALARM_ON_COMMAND) + ": " + String(ALARM_ON_COMMAND_DESCRPTION) + "\n";
 	command_list += "		> " + String(ALARM_OFF_COMMAND) + ": " + String(ALARM_OFF_COMMAND_DESCRPTION) + "\n";
 	command_list += " 	> " + String(AVAILABILITY_COMMAND) + ": " + String(AVAILABILITY_COMMAND_DESCRPTION) + "\n";
