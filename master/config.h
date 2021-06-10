@@ -49,7 +49,7 @@
 #define ALARM_OFF_COMMAND_DESCRPTION "switch alarm OFF ❌🚨"
 #define AVAILABILITY_COMMAND_DESCRPTION "car-park availability 🚗"
 #define REGISTER_CARD_COMMAND_DESCRPTION "information about registration of new RFID cards 💳"
-#define PARKING_INFO_COMMAND_DESCRPTION "information parking status 🅿️"
+#define PARKING_INFO_COMMAND_DESCRPTION "information about parking status 🅿️"
 #define NOTIFICATIONS_ON_COMMAND_DESCRPTION "subscribe to channel's push notifications 🔔"
 #define NOTIFICATIONS_OFF_COMMAND_DESCRPTION "unsubscribe to channel's push notifications 🔕"
 
