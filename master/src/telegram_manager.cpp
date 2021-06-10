@@ -91,9 +91,9 @@ void TelegramManager::handle_messages(int numMessages)
 String TelegramManager::build_reply_keyboard() 
 {
     String keyboard = "[";
-    keyboard += "[\"" + String(ALARM_ON_COMMAND) +"\", \"" + String(ALARM_OFF_COMMAND) + "\"]";
-    keyboard += "[\"" + String(NOTIFICATIONS_ON_COMMAND) + "\", \"" + String(NOTIFICATIONS_OFF_COMMAND) + "\"]";
-    keyboard += "[\"" + String(AVAILABILITY_COMMAND) + "\", \"" + String(PARKING_INFO_COMMAND) + "\"]";
+    keyboard += "[\"" + String(ALARM_ON_COMMAND) +"\", \"" + String(ALARM_OFF_COMMAND) + "\"],";
+    keyboard += "[\"" + String(NOTIFICATIONS_ON_COMMAND) + "\", \"" + String(NOTIFICATIONS_OFF_COMMAND) + "\"],";
+    keyboard += "[\"" + String(AVAILABILITY_COMMAND) + "\", \"" + String(PARKING_INFO_COMMAND) + "\"],";
     keyboard += "[\"" + String(HELP_COMMAND) + "\"]";
     keyboard += "]";
     return keyboard;
