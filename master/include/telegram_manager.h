@@ -13,22 +13,22 @@
 class TelegramManager {
 
 public:
-    TelegramManager();
+  TelegramManager();
 
-    TelegramManager& setup();
-    TelegramManager& onMessageReceived(TelegramReceiver *object, TelegramMsgCallback callback);
-    TelegramManager& listen();
-    TelegramManager& sendMessage(const String &chat_id, const String &message, const String &parseMode);
+  TelegramManager& setup();
+  TelegramManager& onMessageReceived(TelegramReceiver *object, TelegramMsgCallback callback);
+  TelegramManager& listen();
+  TelegramManager& sendMessage(const String &chat_id, const String &message, const String &parseMode);
 
 private:
-    WiFiManager _wifi_manager;
-    WiFiClientSecure _secured_client;
-    UniversalTelegramBot _bot;
+  WiFiManager _wifi_manager;
+  WiFiClientSecure _secured_client;
+  UniversalTelegramBot _bot;
 
-    unsigned long _bot_lasttime;
-    std::function<void(const String &, const String &, const String &)> _callback;
+  unsigned long _bot_lasttime;
+  std::function<void(const String &, const String &, const String &)> _callback;
 
-    void handle_messages(int newMessages);
+  void handle_messages(int newMessages);
 
 };
 

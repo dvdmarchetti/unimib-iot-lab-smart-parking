@@ -19,35 +19,35 @@
 
 class MySqlWrapper {
 public:
-    static MySqlWrapper& getInstance() {
-        static MySqlWrapper _INSTANCE;
-        return _INSTANCE;
-    }
+  static MySqlWrapper& getInstance() {
+    static MySqlWrapper _INSTANCE;
+    return _INSTANCE;
+  }
 
-    int insertDevice(const String mac_address, const String type, int status);
-    int updateDevice(const String mac_address, int status);
-    int insertEvent(const String category, const String description, const String device_id, int value = -1);
-    String getDeviceConfiguration(const String type);
-    int getDevices(int &columns, std::vector<std::vector<String>> &rows);
-    void setAutoclose(boolean enable = false);
+  int insertDevice(const String mac_address, const String type, int status);
+  int updateDevice(const String mac_address, int status);
+  int insertEvent(const String category, const String description, const String device_id, int value = -1);
+  String getDeviceConfiguration(const String type);
+  int getDevices(int &columns, std::vector<std::vector<String>> &rows);
+  void setAutoclose(boolean enable = false);
 
 private:
-    MySqlWrapper();
+  MySqlWrapper();
 
-    static MySqlWrapper _INSTANCE;
-    WiFiClient _wifi_client;
-    boolean _autoclose = true;
-    int _mysql_port = 3306;
-    char* _mysql_user = MYSQL_USERNAME;                 // MySQL user login username
-    char* _mysql_password = MYSQL_PASSWORD;             // MySQL user login password
-    IPAddress _server_addr;                             // IP of the MySQL *server* here
-    MySQL_Connection _conn;
-    char _query[QUERY_LEN];                             // Change if query length change
+  static MySqlWrapper _INSTANCE;
+  WiFiClient _wifi_client;
+  boolean _autoclose = true;
+  int _mysql_port = 3306;
+  char* _mysql_user = MYSQL_USERNAME;                 // MySQL user login username
+  char* _mysql_password = MYSQL_PASSWORD;             // MySQL user login password
+  IPAddress _server_addr;                             // IP of the MySQL *server* here
+  MySQL_Connection _conn;
+  char _query[QUERY_LEN];                             // Change if query length change
 
-    bool checkConnection();
-    int executeInsertQuery(const String query);
-    String executeSelectQuery(const String query);
-    void executeSelectAllQuery(int &columns, std::vector<std::vector<String>> &rows, const String query);
+  bool checkConnection();
+  int executeInsertQuery(const String query);
+  String executeSelectQuery(const String query);
+  void executeSelectAllQuery(int &columns, std::vector<std::vector<String>> &rows, const String query);
 };
 
 #endif

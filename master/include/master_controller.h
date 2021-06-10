@@ -20,58 +20,60 @@
 class MasterController : public MqttReceiver, public TelegramReceiver
 {
 public:
-    MasterController();
+  MasterController();
 
-    void setup();
-    void loop();
+  void setup();
+  void loop();
 
 private:
 
-    // Wrappers
-    WebServer _server;
-    MqttWrapper _mqtt_reader;
-    MqttWrapper _mqtt_writer;
-    WiFiManager _wifi_manager;
-    TelegramManager _telegram_manager;
+  // Wrappers
+  WebServer _server;
+  MqttWrapper _mqtt_reader;
+  MqttWrapper _mqtt_writer;
+  WiFiManager _wifi_manager;
+  TelegramManager _telegram_manager;
 
-    // Internal status
-    std::map<String, std::vector<uint>> _light_values;
-    std::map<String, uint> _light_status;
-    std::map<String, bool> _car_park_busy;
-    std::map<String, String> _car_park_status;
-    std::map<String, String> _display_status;
-    std::map<String, uint> _alarm_status;
-    std::map<String, bool> _intrusion_detected;
-    std::map<String, uint> _roof_status;
+  // Internal status
+  std::map<String, std::vector<uint>> _light_values;
+  std::map<String, uint> _light_status;
 
-    unsigned long _last_push;
-    String _display_first_row = "~Smart Parking~", _display_second_row = "Available: {{slots}}";
+  std::map<String, bool> _car_park_busy;
+  std::map<String, String> _car_park_status;
 
-    // Mqtt methods
-    void setup_mqtt();
-    void onMessageReceived(const String &topic, const String &payload);
+  std::map<String, String> _display_status;
+  std::map<String, uint> _alarm_status;
+  std::map<String, bool> _intrusion_detected;
+  std::map<String, uint> _roof_status;
 
-    // Web server methods
-    void register_routes();
-    void handle_cors();
-    void handle_root();
-    void handle_status_get();
-    void handle_display_post();
-    void handle_lights_post();
-    void handle_parking_slot_post();
+  unsigned long _last_push;
+  String _display_first_row = "~Smart Parking~", _display_second_row = "Available: {{slots}}";
 
-    void send_error_response(const char* error);
+  // Mqtt methods
+  void setup_mqtt();
+  void onMessageReceived(const String &topic, const String &payload);
 
-    // DB access methods
-    boolean getConfiguration(StaticJsonDocument<512> &config, String type);
-    boolean getDeviceConfiguration(StaticJsonDocument<512> &config, String mac_address, String type);
-    void masterLoop();
+  // Web server methods
+  void register_routes();
+  void handle_cors();
+  void handle_root();
+  void handle_status_get();
+  void handle_display_post();
+  void handle_lights_post();
+  void handle_parking_slot_post();
 
-    // Utils for display rows
-    void substituteDisplayLine(String &out, String in);
+  void send_error_response(const char* error);
 
-    //Telegram
-    void onTelegramMessageReceived(const String &chat_id, const String &message, const String &from);
+  // DB access methods
+  boolean getConfiguration(StaticJsonDocument<512> &config, String type);
+  boolean getDeviceConfiguration(StaticJsonDocument<512> &config, String mac_address, String type);
+  void masterLoop();
+
+  // Utils for display rows
+  void substituteDisplayLine(String &out, String in);
+
+  //Telegram
+  void onTelegramMessageReceived(const String &chat_id, const String &message, const String &from);
 };
 
 #endif // MASTER_CONTROLLER_HPP_

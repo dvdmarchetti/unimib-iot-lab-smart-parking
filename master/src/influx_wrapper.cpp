@@ -1,6 +1,6 @@
 #include "../include/influx_wrapper.h"
 
-InfluxWrapper::InfluxWrapper() : _client_idb(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN), 
+InfluxWrapper::InfluxWrapper() : _client_idb(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN),
                                  _point_device(INFLUX_DATA_POINT_LABEL)
 {
   //pointDevice.addTag("device", "ESP32");
@@ -17,13 +17,13 @@ InfluxWrapper& InfluxWrapper::checkConnection()
     Serial.println(_client_idb.getLastErrorMessage());
   }
 
-  return _INSTANCE;
+  return *this;
 }
 
 InfluxWrapper& InfluxWrapper::addTag(const String key, const String value)
 {
   _point_device.addTag(key, value);
-  return _INSTANCE;
+  return *this;
 }
 
 InfluxWrapper& InfluxWrapper::writeToInflux(const String field, float val)
@@ -45,7 +45,7 @@ InfluxWrapper& InfluxWrapper::writeToInflux(const String field, float val)
 
   _point_device.clearTags();
 
-  return _INSTANCE;
+  return *this;
 }
 
 InfluxWrapper& InfluxWrapper::writeToInflux(const String field, int val)
@@ -66,5 +66,5 @@ InfluxWrapper& InfluxWrapper::writeToInflux(const String field, int val)
   }
   _point_device.clearTags();
 
-  return _INSTANCE;
+  return *this;
 }

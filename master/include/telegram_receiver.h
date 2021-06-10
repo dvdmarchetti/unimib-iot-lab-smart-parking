@@ -7,8 +7,8 @@
 class TelegramReceiver
 {
 public:
-    virtual ~TelegramReceiver(){};
-    virtual void onTelegramMessageReceived(const String &chat_id, const String &message, const String &from) = 0;
+  virtual ~TelegramReceiver(){};
+  virtual void onTelegramMessageReceived(const String &chat_id, const String &message, const String &from) = 0;
 };
 
 typedef void (TelegramReceiver::*TelegramMsgCallback)(const String &chat_id, const String &message, const String &from);

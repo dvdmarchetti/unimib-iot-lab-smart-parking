@@ -7,15 +7,15 @@
 class WiFiManager
 {
 public:
-    WiFiManager();
+  WiFiManager();
 
-    void begin();
-    void ensure_wifi_is_connected();
-    void print_wifi_status();
+  void begin();
+  void ensure_wifi_is_connected();
+  void print_wifi_status();
 
 private:
-    const String _ssid = SECRET_SSID;
-    const String _pass = SECRET_PASS;
+  const String _ssid = SECRET_SSID;
+  const String _pass = SECRET_PASS;
 };
 
 #endif // WIFI_HPP_

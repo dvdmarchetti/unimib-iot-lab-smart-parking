@@ -6,8 +6,8 @@
 class MqttReceiver
 {
 public:
-    virtual ~MqttReceiver() {};
-    virtual void onMessageReceived(const String &topic, const String &payload) = 0;
+  virtual ~MqttReceiver() {};
+  virtual void onMessageReceived(const String &topic, const String &payload) = 0;
 };
 
 typedef void (MqttReceiver::*MqttCallback)(const String &topic, const String &payload);
