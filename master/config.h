@@ -6,8 +6,8 @@
 #define DEVICE_DISPLAY_TYPE "display"
 #define DEVICE_INTRUSION_TYPE "intrusion"
 #define DEVICE_ROOF_TYPE "roof"
-#define DEVICE_DISPLAY_TYPE "rfid"
-#define DEVICE_DISPLAY_TYPE "gate"
+#define DEVICE_RFID_TYPE "rfid"
+#define DEVICE_GATE_TYPE "gate"
 
 // Mqtt
 #define MQTT_BROKERIP "149.132.178.180"
