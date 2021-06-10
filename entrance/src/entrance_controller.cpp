@@ -53,7 +53,7 @@ void EntranceController::loop()
     if (millis() - _last_action > 10000) {
       Serial.println(F("[CONTROLLER] Activating Deep Sleep"));
       _display.turnOff();
-      ESP.deepSleep(ESP.deepSleepMax());
+      ESP.deepSleep(ESP.deepSleepMax(), RF_DISABLED);
     }
   }
 
