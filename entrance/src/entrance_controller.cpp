@@ -285,6 +285,7 @@ void EntranceController::onCardAvailable(const String &serial)
   Serial.println(serial);
 
   StaticJsonDocument<JSON_OBJECT_SIZE(4)> doc;
+  doc["mac"] = DEVICE_MAC_ADDRESS;
   doc["card"] = serial;
 
   String payload;
