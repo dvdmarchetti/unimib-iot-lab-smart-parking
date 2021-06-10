@@ -34,12 +34,15 @@ private:
     WiFiManager _wifi_manager;
     TelegramManager _telegram_manager;
 
-    // Objects
+    // Internal status
     std::map<String, std::vector<uint>> _light_values;
     std::map<String, uint> _light_status;
     std::map<String, bool> _car_park_busy;
     std::map<String, String> _car_park_status;
     std::map<String, String> _display_status;
+    std::map<String, uint> _alarm_status;
+    std::map<String, bool> _intrusion_detected;
+    std::map<String, uint> _roof_status;
 
     unsigned long _last_push;
     String _display_first_row = "~Smart Parking~", _display_second_row = "Available: {{slots}}";
@@ -68,7 +71,7 @@ private:
     void substituteDisplayLine(String &out, String in);
 
     //Telegram
-    void onTelegramMessageReceived(const String &chat_id, const String &message);
+    void onTelegramMessageReceived(const String &chat_id, const String &message, const String &from);
 };
 
 #endif // MASTER_CONTROLLER_HPP_

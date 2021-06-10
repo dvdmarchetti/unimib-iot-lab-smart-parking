@@ -24,7 +24,7 @@ TelegramManager& TelegramManager::setup()
 
 TelegramManager& TelegramManager::onMessageReceived(TelegramReceiver *object, TelegramMsgCallback callback)
 {
-    _callback = std::bind(callback, object, std::placeholders::_1, std::placeholders::_2);
+    _callback = std::bind(callback, object, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     return *this;
 }
 
@@ -44,9 +44,9 @@ TelegramManager& TelegramManager::listen()
     return *this;
 }
 
-TelegramManager& TelegramManager::sendMessage(const String &chat_id, const String &message)
+TelegramManager &TelegramManager::sendMessage(const String &chat_id, const String &message, const String &parseMode)
 {
-    bool isMessageSent = _bot.sendMessage(chat_id, message, "");
+    bool isMessageSent = _bot.sendMessage(chat_id, message, parseMode);
 
     if (isMessageSent) Serial.println("[TELEGRAM MANAGER] Message successfully sent");
     else Serial.println("[TELEGRAM MANAGER] Error dutring message sending");
@@ -57,6 +57,6 @@ TelegramManager& TelegramManager::sendMessage(const String &chat_id, const Strin
 void TelegramManager::handle_messages(int numMessages) 
 {
     for (int i = 0; i < numMessages; i++) {
-        _callback(_bot.messages[i].chat_id, _bot.messages[i].text);
+        _callback(_bot.messages[i].chat_id, _bot.messages[i].text, _bot.messages[i].from_name);
     }
 }

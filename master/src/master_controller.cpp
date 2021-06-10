@@ -377,6 +377,11 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
             _car_park_busy[mac_address] = false;
         } else if (type == DEVICE_LIGHT_TYPE) {
             _light_status[mac_address] = 2;
+        } else if (type == DEVICE_INTRUSION_TYPE) {
+            _alarm_status[mac_address] = 0;
+            _intrusion_detected[mac_address] = false;
+        } else if (type == DEVICE_ROOF_TYPE) {
+            _roof_status[mac_address] = 0;
         }
 
         // Write device on db
@@ -432,6 +437,10 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
             // Store light status.
             int status = doc["status"].as<String>() == "off" ? 0 : doc["status"].as<String>() == "on" ? 1 : 2;
             _light_status[mac_address] = status;
+        } else if (type == DEVICE_INTRUSION_TYPE) {
+            String status = doc["status"].as<String>();
+            _alarm_status[mac_address] = status == "on" ? 1 : 0;
+            _intrusion_detected[mac_address] = doc["intrusion"].as<uint>();
         } else {
             Serial.println("Device type not recognized");
         }
@@ -448,6 +457,11 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
             _car_park_busy.erase(mac_address);
         } else if (type == DEVICE_LIGHT_TYPE) {
             _light_status.erase(mac_address);
+        } else if (type == DEVICE_INTRUSION_TYPE) {
+            _alarm_status.erase(mac_address);
+            _intrusion_detected.erase(mac_address);
+        } else if (type == DEVICE_ROOF_TYPE) {
+            _roof_status.erase(mac_address);
         }
 
         // Update status for this specific device
@@ -459,8 +473,83 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
     }
 }
 
-void MasterController::onTelegramMessageReceived(const String &chat_id, const String &message) {
+void MasterController::onTelegramMessageReceived(const String &chat_id, const String &message, const String &from) 
+{
+    String command_list = " > " + String(ALARM_ON_COMMAND) + ": switch alarm ON\n";
+    command_list += " > " + String(ALARM_OFF_COMMAND) + ": switch alarm OFF\n";
+    command_list += " > " + String(AVAILABILITY_COMMAND) + ": car-park availability\n";
+    command_list += " > " + String(REGISTER_CARD_COMMAND) + ": information about registration of new RFID cards\n";
+    command_list += " > " + String(PARKING_INFO_COMMAND) + ": information parking status\n";
+
     // TODO: message and action handling.
+    if (message.equals(ALARM_ON_COMMAND)) {
+        StaticJsonDocument<256> doc;
+        StaticJsonDocument<512> config;
+        this->getConfiguration(config, DEVICE_INTRUSION_TYPE);
+
+        doc["command"] = 1;
+
+        String payload;
+        serializeJson(doc, payload);
+
+        for (auto device : _alarm_status) {
+            _alarm_status[device.first] = 1;
+
+            // Push command to each device through MQTT
+            char deviceTopic[128];
+            sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
+            _mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
+        }
+    } else if (message.equals(ALARM_OFF_COMMAND)) {
+        StaticJsonDocument<256> doc;
+        StaticJsonDocument<512> config;
+        this->getConfiguration(config, DEVICE_INTRUSION_TYPE);
+
+        doc["command"] = 0;
+
+        String payload;
+        serializeJson(doc, payload);
+
+        for (auto device : _alarm_status)
+        {
+            _alarm_status[device.first] = 1;
+
+            // Push command to each device through MQTT
+            char deviceTopic[128];
+            sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
+            _mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
+        }
+    } else if (message.equals(AVAILABILITY_COMMAND)) {
+        uint available = 0, total = 0;
+        auto it = _car_park_busy.begin();
+
+        while (it != _car_park_busy.end()) {
+            if (!it->second) {
+                available++;
+            }
+            total++;
+            it++;
+        }
+
+        String message = "Availability: " + String(available) + "/" + String(total);
+        _telegram_manager.sendMessage(chat_id, message, "");
+    } else if (message.equals(REGISTER_CARD_COMMAND)) {
+        // TODO
+    } else if (message.equals(PARKING_INFO_COMMAND)) {
+
+    } else if (message.equals(HELP_COMMAND)) {
+        String welcome = "Welcome to Smart Parking Telegram Bot, " + from + ".\n";
+        welcome += "Commands:\n\n";
+        welcome += command_list;
+
+        _telegram_manager.sendMessage(chat_id, welcome, "Markdown");
+    } else {
+        String response = "Command not recognized! Possible commands:\n";
+        response += command_list;
+        
+        _telegram_manager.sendMessage(chat_id, response, "Markdown");
+    }
+
     return;
 }
 
