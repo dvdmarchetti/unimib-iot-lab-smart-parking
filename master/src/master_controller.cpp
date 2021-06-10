@@ -478,7 +478,7 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 
 void MasterController::onTelegramMessageReceived(const String &chat_id, const String &message, const String &from)
 {
-	String command_list = ""	;	
+	String command_list = "";	
 	command_list += "		> " + String(ALARM_ON_COMMAND) + ": " + String(ALARM_ON_COMMAND_DESCRPTION) + "\n";
 	command_list += "		> " + String(ALARM_OFF_COMMAND) + ": " + String(ALARM_OFF_COMMAND_DESCRPTION) + "\n";
 	command_list += " 	> " + String(AVAILABILITY_COMMAND) + ": " + String(AVAILABILITY_COMMAND_DESCRPTION) + "\n";
@@ -505,6 +505,8 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
       sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
       _mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
     }
+
+		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, "Alarm armed!", "");
   } else if (message.equals(ALARM_OFF_COMMAND)) {
     StaticJsonDocument<256> doc;
     StaticJsonDocument<512> config;
@@ -524,7 +526,9 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
       sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
       _mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
     }
-  } else if (message.equals(AVAILABILITY_COMMAND)) {
+
+		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, "Alarm off!", "");
+	} else if (message.equals(AVAILABILITY_COMMAND)) {
     uint available = 0, total = 0;
     auto it = _car_park_busy.begin();
 
@@ -580,22 +584,22 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
 			it_roof++;
 		}
 
-		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "Markdown");
+		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "");
 	} else if (message.equals(NOTIFICATIONS_ON_COMMAND)) {
 		_id_to_notify.insert(chat_id);
 	} else if (message.equals(NOTIFICATIONS_OFF_COMMAND)) {
 		_id_to_notify.erase(chat_id);
 	} else if (message.equals(HELP_COMMAND)) {
-		String welcome = "Welcome to Smart Parking Telegram Bot, " + from + ".\n";
-    welcome += "Commands:\n\n";
-    welcome += command_list;
+		String response = "Welcome to Smart Parking Telegram Bot, " + from + ".\n";
+		response += "Commands:\n\n";
+		response += command_list;
 
-    _telegram_manager.sendMessageWithReplyKeyboard(chat_id, welcome, "Markdown");
+		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "");
 	} else {
 		String response = "Command not recognized! Possible commands:\n";
     response += command_list;
 
-    _telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "Markdown");
+    _telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "");
 	}
 }
 

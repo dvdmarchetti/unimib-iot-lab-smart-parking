@@ -24,7 +24,7 @@ public:
   TelegramManager& sendMessage(const String &chat_id, const String &message, const String &parseMode);
   TelegramManager& sendMessageWithReplyKeyboard(const String &chat_id, const String &message, const String &parseMode, bool resize = false, bool oneTime = false, bool selective = false);
 
-  private:
+private:
   WiFiManager _wifi_manager;
   WiFiClientSecure _secured_client;
   UniversalTelegramBot _bot;
