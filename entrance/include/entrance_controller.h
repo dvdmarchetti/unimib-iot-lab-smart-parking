@@ -33,12 +33,14 @@ private:
   // State
   enum State { WAIT_CONFIGURATION, OFF, ON, MANAGE };
   State _current_state = WAIT_CONFIGURATION;
-  enum ManageState { WAIT_MASTER, ACTIVE, CHECKING };
+  enum ManageState { WAIT_MASTER, ACTIVE, AUTHORIZE };
   ManageState _manage_state = WAIT_MASTER;
 
   // Display handling
   bool _repaint = false;
-  ulong _hold_display = 0;
+  bool _is_holding = false;
+  ulong _hold_start = 0;
+  ulong _last_action = 0;
 
   // Dynamic configuration
   bool _has_requested_configuration = false;
@@ -55,6 +57,8 @@ private:
   void update_display();
   void manage_fsm_loop(StaticJsonDocument<ENTRANCE_JSON_BUFFER_SIZE> &doc);
 
+  void hold_display();
+  void reset_deep_sleep_timer();
   void device_payload(String &destination);
 };
 

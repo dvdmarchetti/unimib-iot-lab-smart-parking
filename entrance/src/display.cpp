@@ -22,7 +22,7 @@ void Display::setup()
       delay(1);
   }
 
-  _lcd.setBacklight(50);
+  _lcd.setBacklight(255);
   _lcd.home();
   _lcd.clear();
 }
@@ -66,5 +66,5 @@ void Display::turnOn()
 {
   _state = ON;
   _lcd.display();
-  _lcd.setBacklight(50);
+  _lcd.setBacklight(255);
 }

@@ -43,10 +43,20 @@ void EntranceController::setup_mqtt()
     .setLastWill(MQTT_TOPIC_DEVICE_LAST_WILL, payload)
     .onMessageReceived(this, &MqttReceiver::onMessageReceived)
     .connect().subscribe(MQTT_TOPIC_DEVICE_CONFIG, 2);
+
+  _last_action = millis();
 }
 
 void EntranceController::loop()
 {
+  if (_current_state == ON) {
+    if (millis() - _last_action > 10000) {
+      Serial.println(F("[CONTROLLER] Activating Deep Sleep"));
+      _display.turnOff();
+      ESP.deepSleep(ESP.deepSleepMax());
+    }
+  }
+
   _wifi_manager.ensure_wifi_is_connected();
 
   _mqtt_reader.reconnect().listen();
@@ -93,17 +103,6 @@ void EntranceController::fsm_loop()
         _has_requested_configuration = true;
       }
       break;
-
-    case OFF:
-      _display.turnOff();
-      break;
-
-    case ON | MANAGE:
-      // if (_manage_state != CHECKING) {
-      // _reader.loop();
-      // }
-      // this->manage_fsm_loop();
-      break;
   }
 
   last_execution = millis();
@@ -111,17 +110,11 @@ void EntranceController::fsm_loop()
 
 void EntranceController::update_display()
 {
-  static ulong last_execution = 0;
-
-  ulong current_time = millis();
-  if (current_time - last_execution < 1000) {
+  if (! (_repaint || (_is_holding && millis() - _hold_start > 3000))) {
     return;
   }
-  last_execution = current_time;
-
-  if (millis() - 2000 < _hold_display) {
-    return;
-  }
+  _repaint = false;
+  _is_holding = false;
 
   if (_display.isOff()) {
     _display.turnOn();
@@ -142,16 +135,16 @@ void EntranceController::update_display()
     case MANAGE:
       switch (_manage_state) {
         case WAIT_MASTER:
-          _display.writeFirstRow("CARD MANAGEMENT");
-          _display.writeSecondRow("> Master");
+          _display.writeFirstRow("MANAGE CARDS");
+          _display.writeSecondRow("> Waiting master");
           break;
         case ACTIVE:
-          _display.writeFirstRow("CARD MANAGEMENT");
+          _display.writeFirstRow("MANAGE CARDS");
           _display.writeSecondRow("> Waiting card");
           break;
-        case CHECKING:
-          _display.writeFirstRow("CARD MANAGEMENT");
-          _display.writeSecondRow("> Checking card");
+        case AUTHORIZE:
+          _display.writeFirstRow("MANAGE CARDS");
+          _display.writeSecondRow("> Authorizing...");
           break;
       }
   }
@@ -167,22 +160,26 @@ void EntranceController::manage_fsm_loop(StaticJsonDocument<256> &doc)
     case WAIT_MASTER:
       if (is_master) {
         _manage_state = ACTIVE;
+        _repaint = true;
+
         Serial.println(F("[CONTROLLER] State: MANAGE (ACTIVE)"));
         Serial.println(F("[CONTROLLER] Master correct"));
       } else {
-        _hold_display = millis();
         _display.writeSecondRow("> Wrong master  ");
+        this->hold_display();
+
         Serial.println(F("[CONTROLLER] Wrong card!"));
       }
       break;
 
-    case ACTIVE:
-      break;
-
-    case CHECKING:
+    case AUTHORIZE:
       if (is_master) {
         _manage_state = WAIT_MASTER;
         _current_state = ON;
+
+        _repaint = true;
+        this->reset_deep_sleep_timer();
+
         Serial.println(F("[CONTROLLER] State: ON"));
         return;
       }
@@ -192,12 +189,14 @@ void EntranceController::manage_fsm_loop(StaticJsonDocument<256> &doc)
       _display.writeFirstRow(line);
       if (authorized) {
         Serial.println(F("[CONTROLLER] Card authorized"));
-        _hold_display = millis();
+
         _display.writeSecondRow("> Authorized    ");
+        this->hold_display();
       } else {
         Serial.println(F("[CONTROLLER] Card removed"));
-        _hold_display = millis();
+
         _display.writeSecondRow("> Removed       ");
+        this->hold_display();
       }
       _manage_state = ACTIVE;
 
@@ -237,6 +236,8 @@ void EntranceController::onMessageReceived(const String &topic, const String &pa
     Serial.println(_topic_authorize);
 
     _current_state = ON;
+    _repaint = true;
+    this->reset_deep_sleep_timer();
   } else if (topic == _topic_commands) {
     String card = doc["card"];
     bool is_master = doc["is_master"];
@@ -246,16 +247,23 @@ void EntranceController::onMessageReceived(const String &topic, const String &pa
       if (is_master) {
         _current_state = MANAGE;
         _manage_state = ACTIVE;
+        _repaint = true;
 
         Serial.println(F("[CONTROLLER] State: MANAGE (ACTIVE)"));
       } else if (authorized) {
         Serial.println(F("[CONTROLLER] Access granted"));
-        _hold_display = millis();
+
         _display.writeSecondRow("> Access granted");
+        this->hold_display();
+
+        this->reset_deep_sleep_timer();
       } else if (! authorized) {
         Serial.println(F("[CONTROLLER] Invalid card"));
-        _hold_display = millis();
+
         _display.writeSecondRow("> Invalid card  ");
+        this->hold_display();
+
+        this->reset_deep_sleep_timer();
       }
     } else if (_current_state == MANAGE) {
       this->manage_fsm_loop(doc);
@@ -286,10 +294,21 @@ void EntranceController::onCardAvailable(const String &serial)
     _mqtt_writer.reconnect().publish(_topic_check, payload);
   } else if (_current_state == MANAGE) {
     _mqtt_writer.reconnect().publish(_topic_authorize, payload);
-    _manage_state = CHECKING;
+    _manage_state = AUTHORIZE;
   }
 
   _reader.halt();
+}
+
+void EntranceController::hold_display()
+{
+  _is_holding = true;
+  _hold_start = millis();
+}
+
+void EntranceController::reset_deep_sleep_timer()
+{
+  _last_action = millis();
 }
 
 void EntranceController::device_payload(String &destination)
