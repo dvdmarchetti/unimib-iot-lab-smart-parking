@@ -7,6 +7,7 @@
 #include <MySQL_Cursor.h>
 #include <WiFi.h>
 
+#include "../config.h"
 #include "../secrets.h"
 
 #define QUERY_LEN 256
