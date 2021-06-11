@@ -21,6 +21,10 @@ void MasterController::setup()
   _telegram_manager.setup()
     .onMessageReceived(this, &TelegramReceiver::onTelegramMessageReceived);
 
+  Serial.println(F("[CONTROLLER] Setting up OpenWeather client"));
+  _ow_client.setup(WEATHER_CITY, WEATHER_COUNTRY)
+      .onMessageReceived(this, &OpenWeatherReceiver::onWeatherReceived);
+
   this->setup_mqtt();
 
   _last_push = millis();
@@ -55,6 +59,9 @@ void MasterController::loop()
 
   // Telegram bot handling
   _telegram_manager.listen();
+
+  // OpenWeather weather pull
+  _ow_client.pull();
 
   // Master loop (Influx push)
   this->masterLoop();
@@ -606,6 +613,20 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
 	}
 }
 
+void MasterController::onWeatherReceived(StaticJsonDocument<1024> doc){
+  float temperature = doc["main"]["temp"].as<float>();
+  float humidity = doc["main"]["humidity"].as<float>();
+  String weather = doc["weather"][0]["main"].as<String>();
+
+  String tmp[] = {"Rain", "Snow", "Thunderstorm", "Drizzle"};
+  std::set<String> bad_conditions(tmp, tmp + sizeof(tmp) / sizeof(tmp[0]));
+
+  boolean is_in = std::find(bad_conditions.begin(), bad_conditions.end(), weather) != bad_conditions.end();
+
+  if (is_in) this->sendCommandToRoof(0);
+  else this->sendCommandToRoof(1);
+}
+
 boolean MasterController::getConfiguration(StaticJsonDocument<512> &config, String type)
 {
   String strConfig = MySqlWrapper::getInstance().getDeviceConfiguration(type);
@@ -661,27 +682,30 @@ void MasterController::substituteDisplayLine(String &out, String in)
   out.replace("{{slots}}", String(available));
 }
 
-void MasterController::closeRoof()
+void MasterController::sendCommandToRoof(int command)
 {
 	StaticJsonDocument<256> doc;
 	StaticJsonDocument<512> config;
 	this->getConfiguration(config, DEVICE_ROOF_TYPE);
 
-	doc["command"] = 0;
+	doc["command"] = command;
 
 	String payload;
 	serializeJson(doc, payload);
 
 	for (auto device : _roof_status)
 	{
-		_roof_status[device.first] = 0;
+    if (device.second != command) {
+      // Push command to each device through MQTT
+      char deviceTopic[128];
+      sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
+      _mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
 
-		// Push command to each device through MQTT
-		char deviceTopic[128];
-		sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
-		_mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
-	}
+      // Push notification through telegram bot
+      String msg = command == 0 ? ROOF_CLOSED_MESSAGE : ROOF_OPENED_MESSAGE;
+      _telegram_manager.sendNotification(_id_to_notify, String(ROOF_CLOSED_MESSAGE), "");
 
-	// Push notification through telegram bot
-	_telegram_manager.sendNotification(_id_to_notify, String(ROOF_CLOSED_MESSAGE), "");
+      _roof_status[device.first] = command;
+    }
+  }
 }

@@ -54,6 +54,12 @@
 #define NOTIFICATIONS_OFF_COMMAND_DESCRPTION "unsubscribe to channel's push notifications 🔕"
 
 #define NOTIFICATION_INTRUSION_MESSAGE "🚨 Intrusion detected --> Alarm on! 🚨"
-#define ROOF_CLOSED_MESSAGE "🔒 Rooftop window has been closed! 🔒"
+#define ROOF_CLOSED_MESSAGE "⛈ Bad weather is coming... Rooftop window has been closed! ⛈"
+#define ROOF_OPENED_MESSAGE "☀️ Good weather is coming... Rooftop window has been opened! ☀️"
 #define NOTIFICATION_ON_MESSAGE "🔔 Subscribed to smart parking notification! 🔔"
 #define NOTIFICATION_OFF_MESSAGE "🔕 Unsubscribed to smart parking notification! 🔕"
+
+// OpenaWeather
+#define OPEN_WEATHER_PULL_PERIOD 300000
+#define WEATHER_CITY "Milan" // city
+#define WEATHER_COUNTRY "it" // ISO3166 country code

@@ -14,10 +14,12 @@
 #include "mqtt_wrapper.h"
 #include "telegram_manager.h"
 #include "telegram_receiver.h"
+#include "open_weather_client.h"
+#include "open_weather_receiver.h"
 
 #include "../dashboard.h"
 
-class MasterController : public MqttReceiver, public TelegramReceiver
+class MasterController : public MqttReceiver, public TelegramReceiver, public OpenWeatherReceiver
 {
 public:
   MasterController();
@@ -33,6 +35,7 @@ private:
   MqttWrapper _mqtt_writer;
   WiFiManager _wifi_manager;
   TelegramManager _telegram_manager;
+  OpenWeatherClient _ow_client;
 
   // Internal status
   std::map<String, std::vector<uint>> _light_values;
@@ -75,11 +78,14 @@ private:
   // Utils for display rows
   void substituteDisplayLine(String &out, String in);
 
-  //Telegram
+  // Telegram
   void onTelegramMessageReceived(const String &chat_id, const String &message, const String &from);
 
+  // OpenWeather
+  void onWeatherReceived(StaticJsonDocument<1024> doc);
+
   // Utils
-  void closeRoof();
+  void sendCommandToRoof(int command);
 };
 
 #endif // MASTER_CONTROLLER_HPP_

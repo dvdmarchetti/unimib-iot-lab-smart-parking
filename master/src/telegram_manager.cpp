@@ -49,7 +49,7 @@ TelegramManager &TelegramManager::sendMessage(const String &chat_id, const Strin
   bool isMessageSent = _bot.sendMessage(chat_id, message, parseMode);
 
   if (isMessageSent) Serial.println(F("[TELEGRAM MANAGER] Message successfully sent"));
-  else Serial.println(F("[TELEGRAM MANAGER] Error dutring message sending"));
+  else Serial.println(F("[TELEGRAM MANAGER] Error during message sending"));
 
   return *this;
 }
@@ -67,7 +67,7 @@ TelegramManager& TelegramManager::sendMessageWithReplyKeyboard(const String &cha
     );
 
     if (isMessageSent) Serial.println(F("[TELEGRAM MANAGER] Message successfully sent"));
-    else Serial.println(F("[TELEGRAM MANAGER] Error dutring message sending"));
+    else Serial.println(F("[TELEGRAM MANAGER] Error during message sending"));
 
     return *this;
 }
