@@ -525,8 +525,7 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
     String payload;
     serializeJson(doc, payload);
 
-    for (auto device : _alarm_status)
-    {
+    for (auto device : _alarm_status) {
       _alarm_status[device.first] = 1;
 
       // Push command to each device through MQTT
@@ -556,61 +555,57 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
     String response = "Smart Parking status:\n";
 
 		uint available = 0, total = 0;
-		auto it = _car_park_busy.begin();
-		while (it != _car_park_busy.end()) {
-			if (!it->second) {
-				available++;
-			}
-			total++;
-			it++;
-		}
 
-		response += "		> Availability: " + String(available) + "/" + String(total) + "\n";
+    // 1. Check availability
+    for (auto car_park : _car_park_busy) {
+      if (!car_park.second) available++;
+      total++;
+    }
+    response += "		> Availability: " + String(available) + "/" + String(total) + "\n";
 
-		auto it_light = _light_status.begin();
-		while (it_light != _light_status.end()) {
-			String status = it_light->second ? "on" : "off";
-			response += "		> Light " + it_light->first + ": " + status + "\n";
-			it_light++;
-		}
+    // 2. Lights status
+    for (auto light : _light_status) {
+      String status = light.second == 1 ? "on" : "off";
+      response += "		> Light " + light.first + ": " + status + "\n";
+    }
 
-		auto it_alarm = _alarm_status.begin();
-		auto it_intrusion = _intrusion_detected.begin();
-		while (it_alarm != _alarm_status.end() && it_intrusion != _intrusion_detected.end()) {
-			String status = it_alarm->second == 1 ? "on" : "off";
-			String intrusion_status = it_intrusion->second ? "true" : "false";
-			response += "		> Alarm " + it_alarm->first + ": " + status + "\n";
-			response += "				> Intrusion: " + intrusion_status + "\n";
-			it_alarm++;
-			it_intrusion++;
-		}
+    // 3. Alarms status
+    auto it_alarm = _alarm_status.begin();
+    auto it_intrusion = _intrusion_detected.begin();
+    while (it_alarm != _alarm_status.end() && it_intrusion != _intrusion_detected.end()) {
+        String status = it_alarm->second == 1 ? "on" : "off";
+        String intrusion_status = it_intrusion->second ? "true" : "false";
+        response += "		> Alarm " + it_alarm->first + ": " + status + "\n";
+        response += "				> Intrusion: " + intrusion_status + "\n";
+        it_alarm++;
+        it_intrusion++;
+      }
 
-		auto it_roof = _roof_status.begin();
-		while (it_roof != _roof_status.end()) {
-			String status = it_roof->second == 1 ? "open" : "close";
-			response += "		> Roof window " + it_roof->first + ": " + status + "\n";
-			it_roof++;
-		}
+    // 4. Rooftop windows status
+    for (auto roof : _roof_status) {
+      String status = roof.second == 1 ? "open" : "close";
+      response += "		> Roof window " + roof.first + ": " + status + "\n";
+    }
 
-		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "");
-	} else if (message.equals(NOTIFICATIONS_ON_COMMAND)) {
-		_id_to_notify.insert(chat_id);
-		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, NOTIFICATION_ON_MESSAGE, "");
-	} else if (message.equals(NOTIFICATIONS_OFF_COMMAND)) {
-		_id_to_notify.erase(chat_id);
-		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, NOTIFICATION_OFF_MESSAGE, "");
-	} else if (message.equals(HELP_COMMAND)) {
-		String response = "Welcome to Smart Parking Telegram Bot, " + from + ".\n";
-		response += "Commands:\n\n";
-		response += command_list;
-
-		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "");
-	} else {
-		String response = "Command not recognized! Possible commands:\n";
+    _telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "");
+  } else if (message.equals(NOTIFICATIONS_ON_COMMAND)) {
+    _id_to_notify.insert(chat_id);
+    _telegram_manager.sendMessageWithReplyKeyboard(chat_id, NOTIFICATION_ON_MESSAGE, "");
+  } else if (message.equals(NOTIFICATIONS_OFF_COMMAND)) {
+    _id_to_notify.erase(chat_id);
+    _telegram_manager.sendMessageWithReplyKeyboard(chat_id, NOTIFICATION_OFF_MESSAGE, "");
+  } else if (message.equals(HELP_COMMAND)) {
+    String response = "Welcome to Smart Parking Telegram Bot, " + from + ".\n";
+    response += "Commands:\n\n";
     response += command_list;
 
     _telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "");
-	}
+  } else {
+    String response = "Command not recognized! Possible commands:\n";
+    response += command_list;
+
+    _telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "");
+  }
 }
 
 void MasterController::onWeatherReceived(StaticJsonDocument<1024> doc){
@@ -693,8 +688,7 @@ void MasterController::sendCommandToRoof(int command)
 	String payload;
 	serializeJson(doc, payload);
 
-	for (auto device : _roof_status)
-	{
+	for (auto device : _roof_status) {
     if (device.second != command) {
       // Push command to each device through MQTT
       char deviceTopic[128];
