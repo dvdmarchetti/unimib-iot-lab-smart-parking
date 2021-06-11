@@ -621,7 +621,7 @@ void MasterController::onWeatherReceived(StaticJsonDocument<1024> doc){
   String tmp[] = {"Rain", "Snow", "Thunderstorm", "Drizzle"};
   std::set<String> bad_conditions(tmp, tmp + sizeof(tmp) / sizeof(tmp[0]));
 
-  boolean is_in = std::find(bad_conditions.begin(), bad_conditions.end(), weather) != bad_conditions.end();
+  const boolean is_in = bad_conditions.find(weather) != bad_conditions.end();
 
   if (is_in) this->sendCommandToRoof(0);
   else this->sendCommandToRoof(1);
