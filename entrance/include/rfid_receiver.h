@@ -11,8 +11,6 @@ public:
   virtual void onCardAvailable(const String &serial) = 0;
 };
 
-// typedef std::function<void(const String&)> RfidCallback;
-
 typedef void (RfidReceiver::*RfidCallback)(const String &serial);
 
 #endif // __RFID_RECEIVER__

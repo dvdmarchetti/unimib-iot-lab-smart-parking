@@ -3,8 +3,8 @@
 #include <ArduinoJson.h>
 
 EntranceController::EntranceController() :
-  _mqtt_reader(MqttWrapper("Reader", MQTT_BROKERIP, MQTT_CLIENTID_READER, MQTT_USERNAME, MQTT_PASSWORD)),
-  _mqtt_writer(MqttWrapper("Writer", MQTT_BROKERIP, MQTT_CLIENTID_WRITER, MQTT_USERNAME, MQTT_PASSWORD)),
+  _mqtt_reader(MqttWrapper(F("Reader"), MQTT_BROKERIP, MQTT_CLIENTID_READER, MQTT_USERNAME, MQTT_PASSWORD)),
+  _mqtt_writer(MqttWrapper(F("Writer"), MQTT_BROKERIP, MQTT_CLIENTID_WRITER, MQTT_USERNAME, MQTT_PASSWORD)),
   _reader(RfidReader(SS_PIN, RST_PIN))
 {
   //
@@ -14,8 +14,8 @@ void EntranceController::setup()
 {
   Serial.println(F("[CONTROLLER] Setting up Display"));
   _display.setup();
-  _display.writeFirstRow("Smart Parking:");
-  _display.writeSecondRow("Booting...");
+  _display.writeFirstRow(F("Smart Parking:"));
+  _display.writeSecondRow(F("Booting..."));
   _display.turnOn();
 
   Serial.println(F("[CONTROLLER] Setting up RFID reader"));
@@ -94,8 +94,8 @@ void EntranceController::fsm_loop()
         String payload;
         this->device_payload(payload);
 
-        _display.writeFirstRow("Smart Parking:");
-        _display.writeSecondRow("Waiting config");
+        _display.writeFirstRow(F("Waiting"));
+        _display.writeSecondRow(F("configuration"));
         Serial.print(F("[CONTROLLER] Requesting configuration: "));
         Serial.println(payload);
 
@@ -122,31 +122,104 @@ void EntranceController::update_display()
 
   switch (_current_state) {
     case WAIT_CONFIGURATION:
-      _display.writeFirstRow("SMART PARKING");
-      _display.writeSecondRow("> Waiting config");
+      _display.writeFirstRow("Waiting");
+      _display.writeSecondRow("configuration");
       break;
     case OFF:
       _display.turnOff();
       break;
     case ON:
       _display.writeFirstRow("SMART PARKING");
-      _display.writeSecondRow("> Waiting card");
+      _display.writeSecondRow("> Scan a card");
+      break;
+    case VERIFY:
+      _display.writeFirstRow("SMART PARKING");
+      _display.writeSecondRow("> Verifying...");
       break;
     case MANAGE:
       switch (_manage_state) {
         case WAIT_MASTER:
-          _display.writeFirstRow("MANAGE CARDS");
+          _display.writeFirstRow("ADMINISTRATION");
           _display.writeSecondRow("> Waiting master");
           break;
         case ACTIVE:
-          _display.writeFirstRow("MANAGE CARDS");
-          _display.writeSecondRow("> Waiting card");
+          _display.writeFirstRow("ADMINISTRATION");
+          _display.writeSecondRow("> Scan a card");
           break;
         case AUTHORIZE:
-          _display.writeFirstRow("MANAGE CARDS");
+          _display.writeFirstRow("ADMINISTRATION");
           _display.writeSecondRow("> Authorizing...");
           break;
       }
+  }
+}
+
+void EntranceController::onMessageReceived(const String &topic, const String &payload)
+{
+  Serial.print(F("[CONTROLLER] "));
+  Serial.print(topic);
+  Serial.print(F(": "));
+  Serial.println(payload);
+
+  StaticJsonDocument<256> doc;
+  DeserializationError error = deserializeJson(doc, payload);
+
+  if (error) {
+    Serial.print(F("[CONTROLLER] Invalid payload: "));
+    Serial.println(error.f_str());
+    return;
+  }
+
+  if (topic == MQTT_TOPIC_DEVICE_CONFIG) {
+    _topic_commands = doc["topicToSubscribe"].as<String>();
+    _topic_values = doc["topicToPublish"].as<String>();
+
+    _mqtt_reader.reconnect().subscribe(_topic_commands);
+
+    Serial.println(F("[CONTROLLER] Received configuration:"));
+    Serial.print(F(" > Commands topic: "));
+    Serial.println(_topic_commands);
+    Serial.print(F(" > Publish topic: "));
+    Serial.println(_topic_values);
+
+    _current_state = ON;
+    _repaint = true;
+    this->reset_deep_sleep_timer();
+  } else if (topic == _topic_commands) {
+    String card = doc["card"];
+    bool is_master = doc["is_master"];
+    bool authorized = doc["authorized"];
+
+    switch (_current_state) {
+      case VERIFY:
+        if (is_master) {
+          _current_state = MANAGE;
+          _manage_state = ACTIVE;
+          _repaint = true;
+
+          Serial.println(F("[CONTROLLER] State: MANAGE (ACTIVE)"));
+        } else if (authorized) {
+          Serial.println(F("[CONTROLLER] Access granted"));
+
+          _display.writeSecondRow(F("> Access granted"));
+          this->hold_display();
+
+        } else if (! authorized) {
+          Serial.println(F("[CONTROLLER] Invalid card"));
+
+          _display.writeSecondRow(F("> Invalid card  "));
+          this->hold_display();
+        }
+
+        this->reset_deep_sleep_timer();
+        break;
+
+      case MANAGE:
+        this->manage_fsm_loop(doc);
+        break;
+    }
+  } else {
+    Serial.println(F("[CONTROLLER] MQTT Topic not recognized. Message skipped."));
   }
 }
 
@@ -165,7 +238,7 @@ void EntranceController::manage_fsm_loop(StaticJsonDocument<256> &doc)
         Serial.println(F("[CONTROLLER] State: MANAGE (ACTIVE)"));
         Serial.println(F("[CONTROLLER] Master correct"));
       } else {
-        _display.writeSecondRow("> Wrong master  ");
+        _display.writeSecondRow(F("> Wrong master  "));
         this->hold_display();
 
         Serial.println(F("[CONTROLLER] Wrong card!"));
@@ -190,86 +263,17 @@ void EntranceController::manage_fsm_loop(StaticJsonDocument<256> &doc)
       if (authorized) {
         Serial.println(F("[CONTROLLER] Card authorized"));
 
-        _display.writeSecondRow("> Authorized    ");
+        _display.writeSecondRow(F("> Authorized    "));
         this->hold_display();
       } else {
         Serial.println(F("[CONTROLLER] Card removed"));
 
-        _display.writeSecondRow("> Removed       ");
+        _display.writeSecondRow(F("> Removed       "));
         this->hold_display();
       }
       _manage_state = ACTIVE;
 
       break;
-  }
-}
-
-void EntranceController::onMessageReceived(const String &topic, const String &payload)
-{
-  Serial.print(F("[CONTROLLER] "));
-  Serial.print(topic);
-  Serial.print(F(": "));
-  Serial.println(payload);
-
-  StaticJsonDocument<256> doc;
-  DeserializationError error = deserializeJson(doc, payload);
-
-  if (error) {
-    Serial.print(F("[CONTROLLER] Invalid payload: "));
-    Serial.println(error.f_str());
-    return;
-  }
-
-  if (topic == MQTT_TOPIC_DEVICE_CONFIG) {
-    _topic_commands = doc["topicToSubscribe"].as<String>();
-    _topic_check = doc["topicToCheck"].as<String>();
-    _topic_authorize = doc["topicToAuthorize"].as<String>();
-
-    _mqtt_reader.reconnect().subscribe(_topic_commands);
-
-    Serial.println(F("[CONTROLLER] Received configuration:"));
-    Serial.print(F(" > Commands topic: "));
-    Serial.println(_topic_commands);
-    Serial.print(F(" > Check topic: "));
-    Serial.println(_topic_check);
-    Serial.print(F(" > Authorize topic: "));
-    Serial.println(_topic_authorize);
-
-    _current_state = ON;
-    _repaint = true;
-    this->reset_deep_sleep_timer();
-  } else if (topic == _topic_commands) {
-    String card = doc["card"];
-    bool is_master = doc["is_master"];
-    bool authorized = doc["authorized"];
-
-    if (_current_state == ON) {
-      if (is_master) {
-        _current_state = MANAGE;
-        _manage_state = ACTIVE;
-        _repaint = true;
-
-        Serial.println(F("[CONTROLLER] State: MANAGE (ACTIVE)"));
-      } else if (authorized) {
-        Serial.println(F("[CONTROLLER] Access granted"));
-
-        _display.writeSecondRow("> Access granted");
-        this->hold_display();
-
-        this->reset_deep_sleep_timer();
-      } else if (! authorized) {
-        Serial.println(F("[CONTROLLER] Invalid card"));
-
-        _display.writeSecondRow("> Invalid card  ");
-        this->hold_display();
-
-        this->reset_deep_sleep_timer();
-      }
-    } else if (_current_state == MANAGE) {
-      this->manage_fsm_loop(doc);
-    }
-  } else {
-    Serial.println(F("[CONTROLLER] MQTT Topic not recognized. Message skipped."));
   }
 }
 
@@ -284,19 +288,25 @@ void EntranceController::onCardAvailable(const String &serial)
   Serial.print(F("[CONTROLLER] Reading card: "));
   Serial.println(serial);
 
-  StaticJsonDocument<JSON_OBJECT_SIZE(4)> doc;
+  StaticJsonDocument<JSON_OBJECT_SIZE(10)> doc;
   doc["mac"] = DEVICE_MAC_ADDRESS;
+  doc["type"] = DEVICE_TYPE;
   doc["card"] = serial;
+
+  if (_current_state == ON) {
+    _current_state = VERIFY;
+    doc["action"] = F("verify");
+  } else if (_current_state == MANAGE) {
+    _manage_state = AUTHORIZE;
+    doc["action"] = F("authorize");
+  }
+  _repaint = true;
+  this->reset_deep_sleep_timer();
 
   String payload;
   serializeJson(doc, payload);
 
-  if (_current_state == ON) {
-    _mqtt_writer.reconnect().publish(_topic_check, payload);
-  } else if (_current_state == MANAGE) {
-    _mqtt_writer.reconnect().publish(_topic_authorize, payload);
-    _manage_state = AUTHORIZE;
-  }
+  _mqtt_writer.reconnect().publish(_topic_values, payload);
 
   _reader.halt();
 }

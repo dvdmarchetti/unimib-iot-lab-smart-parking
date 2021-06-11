@@ -20,7 +20,7 @@ void RfidReader::loop()
 
   String serial;
   dump_byte_array(_reader.uid.uidByte, _reader.uid.size, serial);
-  Serial.print("[RFID] CardID=");
+  Serial.print(F("[RFID] CardID="));
   Serial.println(serial);
 
   _callback(serial);

@@ -9,7 +9,6 @@
 #include "rfid_receiver.h"
 #include "rfid_reader.h"
 #include "display.h"
-// #include "servo_motor.h"
 
 #define ENTRANCE_JSON_BUFFER_SIZE 256
 
@@ -28,10 +27,9 @@ private:
   MqttWrapper _mqtt_writer;
   RfidReader _reader;
   Display _display;
-  // Servo _gate;
 
   // State
-  enum State { WAIT_CONFIGURATION, OFF, ON, MANAGE };
+  enum State { WAIT_CONFIGURATION, OFF, ON, VERIFY, MANAGE };
   State _current_state = WAIT_CONFIGURATION;
   enum ManageState { WAIT_MASTER, ACTIVE, AUTHORIZE };
   ManageState _manage_state = WAIT_MASTER;
@@ -45,8 +43,7 @@ private:
   // Dynamic configuration
   bool _has_requested_configuration = false;
   String _topic_commands;
-  String _topic_check;
-  String _topic_authorize;
+  String _topic_values;
 
   void setup_mqtt();
   void onMessageReceived(const String &topic, const String &payload);
