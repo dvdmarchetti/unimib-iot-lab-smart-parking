@@ -52,9 +52,12 @@
 #define NOTIFICATIONS_ON_COMMAND_DESCRPTION "subscribe to channel's push notifications 🔔"
 #define NOTIFICATIONS_OFF_COMMAND_DESCRPTION "unsubscribe to channel's push notifications 🔕"
 
+#define NOTIFICATION_INVALID_CARD "⚠️ An unknown card has tried to access the park."
+#define NOTIFICATION_CARD_REMOVED "💳 Card management: a card has been revoked access."
+#define NOTIFICATION_CARD_REGISTERED "💳 Card management: a card has been granted access."
 #define NOTIFICATION_INTRUSION_MESSAGE "🚨 Intrusion detected --> Alarm on! 🚨"
-#define ROOF_CLOSED_MESSAGE "⛈ Bad weather is coming... Rooftop window has been closed! ⛈"
-#define ROOF_OPENED_MESSAGE "☀️ Good weather is coming... Rooftop window has been opened! ☀️"
+#define NOTIFICATION_ROOF_CLOSED_MESSAGE "⛈ Bad weather is coming... Rooftop window has been closed! ⛈"
+#define NOTIFICATION_ROOF_OPENED_MESSAGE "☀️ Good weather is coming... Rooftop window has been opened! ☀️"
 #define NOTIFICATION_ON_MESSAGE "🔔 Subscribed to smart parking notification! 🔔"
 #define NOTIFICATION_OFF_MESSAGE "🔕 Unsubscribed to smart parking notification! 🔕"
 

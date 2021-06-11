@@ -205,9 +205,9 @@ void MasterController::handle_lights_post()
 
   for (auto device : _light_status) {
     // 3. Push command to each device through MQTT
-    char deviceTopic[128];
-    sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
-    _mqtt_writer.connect().publish(String(deviceTopic), _server.arg("plain"), false, 1);
+    String deviceTopic = config["topicToSubscribe"];
+    deviceTopic.replace("<mac>", device.first);
+    _mqtt_writer.connect().publish(deviceTopic, _server.arg("plain"), false, 1);
 
     // 4. Register event on MYSQL
     static String commands[] = {"OFF", "ON", "AUTO"};
@@ -389,12 +389,18 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       payload["is_master"] = is_master;
       payload["authorized"] = is_authorized;
 
+      if (action == "verify" && ! is_authorized) {
+        _telegram_manager.sendNotification(_id_to_notify, NOTIFICATION_INVALID_CARD, "");
+      }
+
       if (action == "authorize") {
         if (! is_master) {
           if (is_authorized) {
             MySqlWrapper::getInstance().revokeCard(card);
+            _telegram_manager.sendNotification(_id_to_notify, NOTIFICATION_CARD_REMOVED, "");
           } else {
             MySqlWrapper::getInstance().authorizeCard(card);
+            _telegram_manager.sendNotification(_id_to_notify, NOTIFICATION_CARD_REGISTERED, "");
           }
           payload["authorized"] = !is_authorized;
         }
@@ -442,13 +448,13 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 void MasterController::onTelegramMessageReceived(const String &chat_id, const String &message, const String &from)
 {
 	String command_list = "";
-	command_list += "		> " + String(ALARM_ON_COMMAND) + ": " + String(ALARM_ON_COMMAND_DESCRPTION) + "\n";
-	command_list += "		> " + String(ALARM_OFF_COMMAND) + ": " + String(ALARM_OFF_COMMAND_DESCRPTION) + "\n";
-	command_list += " 	> " + String(AVAILABILITY_COMMAND) + ": " + String(AVAILABILITY_COMMAND_DESCRPTION) + "\n";
-	command_list += " 	> " + String(NOTIFICATIONS_ON_COMMAND) + ": " + String(NOTIFICATIONS_ON_COMMAND_DESCRPTION) + "\n";
-	command_list += " 	> " + String(NOTIFICATIONS_OFF_COMMAND) + ": " + String(NOTIFICATIONS_OFF_COMMAND_DESCRPTION) +"\n";
+	command_list += " > " + String(ALARM_ON_COMMAND) + ": " + String(ALARM_ON_COMMAND_DESCRPTION) + "\n";
+	command_list += " > " + String(ALARM_OFF_COMMAND) + ": " + String(ALARM_OFF_COMMAND_DESCRPTION) + "\n";
+	command_list += " > " + String(AVAILABILITY_COMMAND) + ": " + String(AVAILABILITY_COMMAND_DESCRPTION) + "\n";
+	command_list += " > " + String(NOTIFICATIONS_ON_COMMAND) + ": " + String(NOTIFICATIONS_ON_COMMAND_DESCRPTION) + "\n";
+	command_list += " > " + String(NOTIFICATIONS_OFF_COMMAND) + ": " + String(NOTIFICATIONS_OFF_COMMAND_DESCRPTION) +"\n";
 	//command_list += " > " + String(REGISTER_CARD_COMMAND) + ": " + String(REGISTER_CARD_COMMAND_DESCRIPTION) + "\n";
-	command_list += " 	> " + String(PARKING_INFO_COMMAND) + ": " + String(PARKING_INFO_COMMAND_DESCRPTION) + "\n";
+	command_list += " > " + String(PARKING_INFO_COMMAND) + ": " + String(PARKING_INFO_COMMAND_DESCRPTION) + "\n";
 
 	if (message.equals(ALARM_ON_COMMAND)) {
     StaticJsonDocument<512> config;
@@ -464,9 +470,9 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
       _alarm_status[device.first] = 1;
 
       // Push command to each device through MQTT
-      char deviceTopic[128];
-      sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
-      _mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
+      String deviceTopic = config["topicToSubscribe"];
+      deviceTopic.replace("<mac>", device.first);
+      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
     }
 
 		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, "Alarm armed!", "");
@@ -484,9 +490,9 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
       _alarm_status[device.first] = 1;
 
       // Push command to each device through MQTT
-      char deviceTopic[128];
-      sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
-      _mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
+      String deviceTopic = config["topicToSubscribe"];
+      deviceTopic.replace("<mac>", device.first);
+      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
     }
 
 		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, "Alarm off!", "");
@@ -516,12 +522,12 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
       if (!car_park.second) available++;
       total++;
     }
-    response += "		> Availability: " + String(available) + "/" + String(total) + "\n";
+    response += " > Availability: " + String(available) + "/" + String(total) + "\n";
 
     // 2. Lights status
     for (auto light : _light_status) {
       String status = light.second == 1 ? "on" : "off";
-      response += "		> Light " + light.first + ": " + status + "\n";
+      response += " > Light " + light.first + ": " + status + "\n";
     }
 
     // 3. Alarms status
@@ -530,8 +536,8 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
     while (it_alarm != _alarm_status.end() && it_intrusion != _intrusion_detected.end()) {
         String status = it_alarm->second == 1 ? "on" : "off";
         String intrusion_status = it_intrusion->second ? "true" : "false";
-        response += "		> Alarm " + it_alarm->first + ": " + status + "\n";
-        response += "				> Intrusion: " + intrusion_status + "\n";
+        response += " > Alarm " + it_alarm->first + ": " + status + "\n";
+        response += "  > Intrusion: " + intrusion_status + "\n";
         it_alarm++;
         it_intrusion++;
       }
@@ -539,7 +545,7 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
     // 4. Rooftop windows status
     for (auto roof : _roof_status) {
       String status = roof.second == 1 ? "open" : "close";
-      response += "		> Roof window " + roof.first + ": " + status + "\n";
+      response += " > Roof window " + roof.first + ": " + status + "\n";
     }
 
     _telegram_manager.sendMessageWithReplyKeyboard(chat_id, response, "");
@@ -638,7 +644,7 @@ void MasterController::sendCommandToRoof(int command)
 
   if (should_send) {
     // Push notification through telegram bot
-    String msg = command == 0 ? ROOF_CLOSED_MESSAGE : ROOF_OPENED_MESSAGE;
+    String msg = command == 0 ? NOTIFICATION_ROOF_CLOSED_MESSAGE : NOTIFICATION_ROOF_OPENED_MESSAGE;
     _telegram_manager.sendNotification(_id_to_notify, msg, "");
   }
 }
