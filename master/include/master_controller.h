@@ -2,7 +2,7 @@
 #define MASTER_CONTROLLER_HPP_
 
 #include <ArduinoJson.h>
-#include <WebServer.h>
+#include <ESPAsyncWebServer.h>
 #include <vector>
 #include <map>
 
@@ -29,7 +29,8 @@ public:
 
 private:
   // Wrappers
-  WebServer _server;
+  AsyncWebServer _server;
+  AsyncWebSocket _ws;
   MqttWrapper _mqtt_reader;
   MqttWrapper _mqtt_writer;
   WiFiManager _wifi_manager;
@@ -60,13 +61,16 @@ private:
   void setup_mqtt();
   void onMessageReceived(const String &topic, const String &payload);
 
+  // WebSocket methods
+  void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
+
   // Web server methods
-  void register_routes();
-  void handle_cors();
-  void handle_root();
-  void handle_status_get();
-  void handle_lights_post();
-  void handle_parking_slot_post();
+  // void register_routes();
+  // void handle_cors();
+  // void handle_root();
+  // void handle_status_get();
+  // void handle_lights_post();
+  // void handle_parking_slot_post();
 
   void send_error_response(const char* error);
 

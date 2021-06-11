@@ -33,6 +33,18 @@
 // Push values
 #define PUSH_LIGHT_VALUES_PERIOD 300000 // 5 minutes.
 
+// Websocket Events (sent to client)
+#define WS_DEVICE_CONNECTED "device:connected"
+#define WS_DEVICE_DEAD "device:dead"
+
+#define WS_CARD_AUTHORIZED "card:authorized"
+#define WS_CARD_REMOVED "card:removed"
+
+#define WS_CARPARK_UPDATE "carpark:update"
+#define WS_INTRUSION_UPDATE "intrusion:update"
+#define WS_ROOF_UPDATE "roof:update"
+#define WS_GATE_UPDATE "gate:update"
+
 // Telegram
 #define BOT_MTBS 1000 // mean time between scan messages
 #define ALARM_ON_COMMAND "/alarm_on"

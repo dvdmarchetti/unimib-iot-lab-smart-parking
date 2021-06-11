@@ -1,8 +1,11 @@
 #include "../include/master_controller.h"
 
-MasterController::MasterController() :  _server(80),
-                    _mqtt_reader(MqttWrapper("Reader", MQTT_BROKERIP, MQTT_CLIENTID_READER, MQTT_USERNAME, MQTT_PASSWORD)),
-                    _mqtt_writer(MqttWrapper("Writer", MQTT_BROKERIP, MQTT_CLIENTID_WRITER, MQTT_USERNAME, MQTT_PASSWORD))
+using namespace std::placeholders;
+
+MasterController::MasterController() : _server(80),
+  _ws("/ws"),
+  _mqtt_reader(MqttWrapper("Reader", MQTT_BROKERIP, MQTT_CLIENTID_READER, MQTT_USERNAME, MQTT_PASSWORD)),
+  _mqtt_writer(MqttWrapper("Writer", MQTT_BROKERIP, MQTT_CLIENTID_WRITER, MQTT_USERNAME, MQTT_PASSWORD))
 {
   //
 }
@@ -13,8 +16,10 @@ void MasterController::setup()
   _wifi_manager.begin();
   _wifi_manager.ensure_wifi_is_connected();
 
-  Serial.println(F("[CONTROLLER] Setting up HTTP server"));
-  this->register_routes();
+  Serial.println(F("[CONTROLLER] Setting up WebSocket server"));
+  _ws.onEvent(std::bind(&MasterController::onEvent, this, _1, _2, _3, _4, _5, _6));
+  _server.addHandler(&_ws);
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
   _server.begin();
 
   Serial.print(F("[CONTROLLER] Setting up telegram bot"));
@@ -41,13 +46,27 @@ void MasterController::setup_mqtt() {
   _mqtt_writer.begin().connect();
 }
 
+void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
+{
+  if (type == WS_EVT_CONNECT) {
+    StaticJsonDocument<128> doc;
+    doc["event"] = WS_DEVICE_CONNECTED;
+
+    String payload;
+    serializeJson(doc, payload);
+    client->text(payload);
+  } else if (type == WS_EVT_DISCONNECT) {
+    Serial.println("Client disconnected");
+  }
+}
+
 void MasterController::loop()
 {
   // Check Wifi connection
   _wifi_manager.ensure_wifi_is_connected();
 
-  // Handle HTTP requests
-  _server.handleClient();
+  // Handle WebSocket requests
+  _ws.cleanupClients();
 
   // Mqtt publish/subscribe
   _mqtt_reader.reconnect().subscribeAll();
@@ -98,178 +117,6 @@ void MasterController::masterLoop() {
 
     _last_push = millis();
   }
-}
-
-void MasterController::register_routes()
-{
-  // _server.on("/", std::bind(&MasterController::handle_root, this));
-  // _server.on("/api/status", HTTP_GET, std::bind(&MasterController::handle_status_get, this));
-  // _server.on("/api/lights", HTTP_POST, std::bind(&MasterController::handle_lights_post, this));
-  // _server.on("/api/parking-slots", HTTP_POST, std::bind(&MasterController::handle_parking_slot_post, this));
-
-  // _server.onNotFound(std::bind(&MasterController::handle_cors, this));
-}
-
-void MasterController::handle_cors()
-{
-  if (_server.method() == HTTP_OPTIONS) {
-    _server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
-    _server.sendHeader("Access-Control-Max-Age", "10000");
-    _server.sendHeader("Access-Control-Allow-Methods", "PUT,POST,GET,OPTIONS");
-    _server.sendHeader("Access-Control-Allow-Headers", "*");
-    _server.send(204);
-  } else {
-    _server.send(404, "text/plain", "");
-  }
-}
-
-void MasterController::handle_root()
-{
-  _server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
-  _server.send(200, "text/html", PAGE_ROOT);
-}
-
-void MasterController::handle_status_get()
-{
-  DynamicJsonDocument doc(1536);
-
-  JsonObject status = doc.createNestedObject("status");
-  auto it = _display_status.begin();
-  if (it != _display_status.end()) {
-    status["display"] = it->second.equals("on");
-  }
-
-  auto it2 = _light_status.begin();
-  if (it2 != _light_status.end()) {
-    status["lights"] = it2->second;
-  }
-
-  int columns;
-  std::vector<std::vector<String>> rows;
-  MySqlWrapper::getInstance().getDevices(columns, rows);
-
-  JsonArray devices = doc.createNestedArray("devices");
-  for (auto row : rows) {
-    JsonObject device = devices.createNestedObject();
-    device["device_id"] = row[0];
-    device["type"] = row[1];
-    device["online"] = (bool) row[2].toInt();
-    device["last_seen"] = row[3];
-  }
-
-  JsonArray parking_slots_availability = doc.createNestedArray("parking_slots_availability");
-
-  auto busy_it = _car_park_busy.begin();
-  auto status_it = _car_park_status.begin();
-  while (busy_it != _car_park_busy.end() && status_it != _car_park_status.end()) {
-    JsonObject slot = parking_slots_availability.createNestedObject();
-
-    slot["mac_address"] = status_it->first;
-    slot["busy"] = busy_it->second;
-    slot["status"] = status_it->second;
-
-    busy_it++;
-    status_it++;
-  }
-
-  String json;
-  serializeJson(doc, json);
-  _server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
-  _server.send(200, "application/json", json);
-}
-
-void MasterController::handle_lights_post()
-{
-  StaticJsonDocument<256> doc;
-  DeserializationError error = deserializeJson(doc, _server.arg("plain"));
-  if (error) {
-    this->send_error_response(error.c_str());
-    return;
-  }
-  if (! doc.containsKey("command") || doc["command"] < 0 || doc["command"] > 2) {
-    this->send_error_response("Command parameter is missing or does not contain a correct value.");
-    return;
-  }
-
-  // 1. Update cached status
-  auto it = _light_status.begin();
-  while (it != _light_status.end()) {
-    String mac = it->first;
-    _light_status[mac] = doc["command"].as<uint>();
-    it++;
-  }
-
-  // 2. Get configuration for generic light device
-  StaticJsonDocument<512> config;
-  this->getConfiguration(config, "light");
-
-  for (auto device : _light_status) {
-    // 3. Push command to each device through MQTT
-    String deviceTopic = config["topicToSubscribe"];
-    deviceTopic.replace("<mac>", device.first);
-    _mqtt_writer.connect().publish(deviceTopic, _server.arg("plain"), false, 1);
-
-    // 4. Register event on MYSQL
-    static String commands[] = {"OFF", "ON", "AUTO"};
-    char event[128];
-    sprintf(event, DASHBOARD_COMMAND_EVENT, "LIGHTS", commands[doc["command"].as<uint>()].c_str());
-    MySqlWrapper::getInstance().insertEvent(DASHBOARD_EVENT_CATEGORY, String(event), device.first);
-  }
-
-  _server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
-  _server.send(204, "application/json");
-}
-
-void MasterController::handle_parking_slot_post()
-{
-  if (strlen(_server.arg("device_id").c_str()) == 0) {
-    _server.send(404, "application/json", "{\"message\":\"A non-null device_id is required.\"}");
-    return;
-  }
-
-  StaticJsonDocument<256> doc;
-  DeserializationError error = deserializeJson(doc, _server.arg("plain"));
-  if (error) {
-    this->send_error_response(error.c_str());
-  }
-  if (! doc.containsKey("command") || (strcmp(doc["command"], "on") != 0 && strcmp(doc["command"], "off") != 0)) {
-    this->send_error_response("Command parameter is missing or does not contain a correct value.");
-    return;
-  }
-
-  String mac_address = _server.arg("device_id");
-
-  // 1. Update cached status
-  auto it = _car_park_status.begin();
-  while (it != _car_park_status.end()) {
-    String mac = it->first;
-    _car_park_status[mac] = doc["command"].as<String>();
-    it++;
-  }
-
-  // 2. Get configuration for generic light device
-  StaticJsonDocument<512> config;
-  this->getDeviceConfiguration(config, mac_address, "car-park");
-
-  // 3. Push command to each device through MQTT
-  String payload = _server.arg("plain");
-
-  _mqtt_writer.connect().publish(config["topicToSubscribe"].as<String>(), payload, false, 1);
-
-  // 4. Register event on MYSQL
-  char event[128];
-  sprintf(event, DASHBOARD_COMMAND_EVENT, "CAR-PARK", doc["command"].as<String>().c_str());
-  MySqlWrapper::getInstance().insertEvent(DASHBOARD_EVENT_CATEGORY, String(event), mac_address);
-
-  _server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
-  _server.send(204, "application/json");
-}
-
-void MasterController::send_error_response(const char* error)
-{
-  char message[128];
-  sprintf(message, "{\"message\":\"%s\"}", error);
-  _server.send(400, "application/json", message);
 }
 
 void MasterController::onMessageReceived(const String &topic, const String &payload)
