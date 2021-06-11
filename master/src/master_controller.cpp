@@ -104,7 +104,6 @@ void MasterController::register_routes()
 {
   _server.on("/", std::bind(&MasterController::handle_root, this));
   _server.on("/api/status", HTTP_GET, std::bind(&MasterController::handle_status_get, this));
-  _server.on("/api/display", HTTP_POST, std::bind(&MasterController::handle_display_post, this));
   _server.on("/api/lights", HTTP_POST, std::bind(&MasterController::handle_lights_post, this));
   _server.on("/api/parking-slots", HTTP_POST, std::bind(&MasterController::handle_parking_slot_post, this));
 
@@ -177,65 +176,6 @@ void MasterController::handle_status_get()
   serializeJson(doc, json);
   _server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
   _server.send(200, "application/json", json);
-}
-
-void MasterController::handle_display_post()
-{
-  StaticJsonDocument<256> doc;
-  DeserializationError error = deserializeJson(doc, _server.arg("plain"));
-  if (error) {
-    this->send_error_response(error.c_str());
-    return;
-  }
-  if (! doc.containsKey("command") || (strcmp(doc["command"], "on") != 0 && strcmp(doc["command"], "off") != 0) && strcmp(doc["command"], "update") != 0) {
-    this->send_error_response("Command parameter is missing or does not contain a correct value.");
-    return;
-  }
-
-  // 1. Update cached status
-  auto it = _display_status.begin();
-  while (it != _display_status.end()) {
-    Serial.print("Updating display: ");
-    Serial.println(it->first);
-
-    String mac = it->first;
-    _display_status[mac] = doc["command"].as<String>();
-    it++;
-  }
-
-  // 2. Replace template {{slots}} with number of parking
-  if (doc.containsKey("textFirstRow") && doc.containsKey("textSecondRow")) {
-    _display_first_row = doc["textFirstRow"].as<String>();
-    _display_second_row = doc["textSecondRow"].as<String>();
-  }
-
-  String row1, row2;
-  substituteDisplayLine(row1, _display_first_row);
-  substituteDisplayLine(row2, _display_second_row);
-  doc["textFirstRow"] = row1;
-  doc["textSecondRow"] = row2;
-
-  // 3. Get configuration for generic light device
-  StaticJsonDocument<512> config;
-  this->getConfiguration(config, "display");
-
-  String payload;
-  serializeJson(doc, payload);
-
-  for (auto device : _display_status) {
-    // 4. Push command to each device through MQTT
-    char deviceTopic[128];
-    sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
-    _mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
-
-    // 5. Register event on MYSQL
-    char event[128];
-    sprintf(event, DASHBOARD_COMMAND_EVENT, "DISPLAY", doc["command"].as<String>().c_str());
-    MySqlWrapper::getInstance().insertEvent(DASHBOARD_EVENT_CATEGORY, String(event), device.first);
-  }
-
-  _server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
-  _server.send(204, "application/json");
 }
 
 void MasterController::handle_lights_post()
@@ -374,13 +314,11 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
     // Publish config file in configuration topic for this device
     String clientTopicForConfig = MQTT_TOPIC_DEVICE_CONFIG + mac_address;
     String buffer;
-    size_t n = serializeJson(config, buffer);
+    serializeJson(config, buffer);
     Serial.println(clientTopicForConfig);
     _mqtt_writer.enqueuePublishMessage(clientTopicForConfig, buffer, false, 2);
 
-    if (type == DEVICE_DISPLAY_TYPE) {
-      _display_status[mac_address] = "on";
-    } else if (type == DEVICE_CAR_PARK_TYPE) {
+    if (type == DEVICE_CAR_PARK_TYPE) {
       _car_park_status[mac_address] = "on";
       _car_park_busy[mac_address] = false;
     } else if (type == DEVICE_LIGHT_TYPE) {
@@ -390,6 +328,10 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       _intrusion_detected[mac_address] = false;
     } else if (type == DEVICE_ROOF_TYPE) {
       _roof_status[mac_address] = 0;
+    } else if (type == DEVICE_RFID_TYPE) {
+      _rfid_status[mac_address] = 0;
+    } else if (type == DEVICE_GATE_TYPE) {
+      _gate_status[mac_address] = 0;
     }
 
     // Write device on db
@@ -411,29 +353,6 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       String status = doc["status"].as<String>();
       _car_park_status[mac_address] = status;
 
-      // Update display to reflect new value
-      StaticJsonDocument<512> config;
-      this->getConfiguration(config, "display");
-
-      StaticJsonDocument<128> jsonPayload;
-      String row1, row2;
-      substituteDisplayLine(row1, _display_first_row);
-      substituteDisplayLine(row2, _display_second_row);
-      jsonPayload["command"] = "update";
-      jsonPayload["textFirstRow"] = row1;
-      jsonPayload["textSecondRow"] = row2;
-
-      String payload;
-      serializeJson(jsonPayload, payload);
-
-      for (auto device : _display_status) {
-        char deviceTopic[128];
-        sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
-        // mqttWrapper->connectToBroker(MQTT_TOPIC_GLOBAL_CONFIG);
-        //mqttWrapper->publish(deviceTopic, payload);
-        _mqtt_writer.enqueuePublishMessage(String(deviceTopic), payload);
-      }
-
       InfluxWrapper::getInstance().checkConnection();
       InfluxWrapper::getInstance().addTag("mac", mac_address);
       InfluxWrapper::getInstance().addTag("type", type);
@@ -452,18 +371,37 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 
 			String message = String(NOTIFICATION_INTRUSION_MESSAGE);
 			_telegram_manager.sendNotification(_id_to_notify, message, "");
-    } else {
+    } else if (type == DEVICE_RFID_TYPE) {
+      // String card = doc["card"];
+      // String action = doc["action"];
+
+      // StaticJsonDocument<JSON_OBJECT_SIZE(3)> payload;
+      // payload["card"] = card;
+
+      // int card_status = MySqlWrapper::getInstance().validateCard(card);
+      // bool authorized = payload["authorized"] = card_status & 0x1;
+      // bool is_master = payload["is_master"] = card_status & 0x10;
+
+      // String buffer;
+      // serializeJson(doc, buffer);
+
+      // if (action == "validate") {
+      //   if (authorized) {
+      //     _mqtt_writer.enqueuePublishMessage();
+      //   }
+      // } else if (action == "authorize") {
+      //   //
+      // }
+    }
+
+    else {
       Serial.println("Device type not recognized");
     }
   } else if (topic.startsWith(String(MQTT_LAST_WILL_PREFIX).c_str())) {
-    // Get URL from the end of MQTT path
-    //String mac_address = topic.substring(topic.lastIndexOf("/") + 1);
     String mac_address = doc["mac"];
     String type = doc["type"];
 
-    if (type == DEVICE_DISPLAY_TYPE) {
-      _display_status.erase(mac_address);
-    } else if (type == DEVICE_CAR_PARK_TYPE) {
+    if (type == DEVICE_CAR_PARK_TYPE) {
       _car_park_status.erase(mac_address);
       _car_park_busy.erase(mac_address);
     } else if (type == DEVICE_LIGHT_TYPE) {
@@ -473,6 +411,10 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       _intrusion_detected.erase(mac_address);
     } else if (type == DEVICE_ROOF_TYPE) {
       _roof_status.erase(mac_address);
+    } else if (type == DEVICE_RFID_TYPE) {
+      _rfid_status.erase(mac_address);
+    } else if (type == DEVICE_GATE_TYPE) {
+      _gate_status.erase(mac_address);
     }
 
     // Update status for this specific device
@@ -656,33 +598,12 @@ boolean MasterController::getDeviceConfiguration(StaticJsonDocument<512> &config
   return true;
 }
 
-void MasterController::substituteDisplayLine(String &out, String in)
-{
-  if (in.indexOf("{{slots}}") == -1) {
-    out = in;
-    return;
-  }
-
-  uint available = 0;
-  auto it = _car_park_busy.begin();
-
-  while (it != _car_park_busy.end()) {
-    if (! it->second) {
-      available++;
-    }
-    it++;
-  }
-
-  out = in;
-  out.replace("{{slots}}", String(available));
-}
-
 void MasterController::sendCommandToRoof(int command)
 {
-	StaticJsonDocument<256> doc;
 	StaticJsonDocument<512> config;
 	this->getConfiguration(config, DEVICE_ROOF_TYPE);
 
+	StaticJsonDocument<256> doc;
 	doc["command"] = command;
 
 	String payload;

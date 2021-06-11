@@ -40,7 +40,7 @@ InfluxWrapper& InfluxWrapper::writeToInflux(const String field, float val)
     Serial.print(F("[InfluxWrapper] InfluxDB write failed: "));
     Serial.println(_client_idb.getLastErrorMessage());
   } else {
-    Serial.println("[InfluxWrapper] Data recorded on InfluxDB");
+    Serial.println(F("[InfluxWrapper] Data recorded on InfluxDB"));
   }
 
   _point_device.clearTags();
@@ -62,7 +62,7 @@ InfluxWrapper& InfluxWrapper::writeToInflux(const String field, int val)
     Serial.print(F("[InfluxWrapper] InfluxDB write failed: "));
     Serial.println(_client_idb.getLastErrorMessage());
   } else {
-    Serial.println("[InfluxWrapper] Data recorded on InfluxDB");
+    Serial.println(F("[InfluxWrapper] Data recorded on InfluxDB"));
   }
   _point_device.clearTags();
 

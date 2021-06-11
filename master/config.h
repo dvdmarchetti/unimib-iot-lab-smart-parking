@@ -3,7 +3,6 @@
 // Json device type recognized by master
 #define DEVICE_LIGHT_TYPE "light"
 #define DEVICE_CAR_PARK_TYPE "car-park"
-#define DEVICE_DISPLAY_TYPE "display"
 #define DEVICE_INTRUSION_TYPE "intrusion"
 #define DEVICE_ROOF_TYPE "roof"
 #define DEVICE_RFID_TYPE "rfid"

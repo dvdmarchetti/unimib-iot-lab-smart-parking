@@ -28,7 +28,6 @@ public:
   void loop();
 
 private:
-
   // Wrappers
   WebServer _server;
   MqttWrapper _mqtt_reader;
@@ -49,11 +48,13 @@ private:
   std::map<String, bool> _intrusion_detected;
   std::map<String, uint> _roof_status;
 
+  std::map<String, uint> _rfid_status; // 0 -> OFF / 1 -> ON / 2 -> MANAGE
+  std::map<String, uint> _gate_status; // 0 -> CLOSED / 1 -> OPEN
+
   // Notification chat_id set
   std::set<String> _id_to_notify;
 
   unsigned long _last_push;
-  String _display_first_row = "~Smart Parking~", _display_second_row = "Available: {{slots}}";
 
   // Mqtt methods
   void setup_mqtt();
@@ -64,7 +65,6 @@ private:
   void handle_cors();
   void handle_root();
   void handle_status_get();
-  void handle_display_post();
   void handle_lights_post();
   void handle_parking_slot_post();
 
@@ -75,10 +75,7 @@ private:
   boolean getDeviceConfiguration(StaticJsonDocument<512> &config, String mac_address, String type);
   void masterLoop();
 
-  // Utils for display rows
-  void substituteDisplayLine(String &out, String in);
-
-  // Telegram
+  //Telegram
   void onTelegramMessageReceived(const String &chat_id, const String &message, const String &from);
 
   // OpenWeather
