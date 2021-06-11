@@ -9,9 +9,9 @@ class OpenWeatherReceiver
 {
 public:
     virtual ~OpenWeatherReceiver(){};
-    virtual void onWeatherReceived(StaticJsonDocument<1024> doc) = 0;
+    virtual void onWeatherReceived(StaticJsonDocument<1024> &doc) = 0;
 };
 
-typedef void (OpenWeatherReceiver::*OpenWeatherCallback)(StaticJsonDocument<1024> doc);
+typedef void (OpenWeatherReceiver::*OpenWeatherCallback)(StaticJsonDocument<1024> &doc);
 
 #endif // __OPENWEATHER_RECEIVER__

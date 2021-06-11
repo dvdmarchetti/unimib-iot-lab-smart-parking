@@ -27,9 +27,9 @@ private:
     String _country;
 
     unsigned long _last_pull;
-    std::function<void(StaticJsonDocument<1024> doc)> _callback;
+    std::function<void(StaticJsonDocument<1024> &doc)> _callback;
 
-    void printWeatherInformation(StaticJsonDocument<1024> doc);
+    void printWeatherInformation(StaticJsonDocument<1024> &doc);
 };
 
 #endif //__OPENWEATHER_CLIENT__

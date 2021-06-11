@@ -1,6 +1,6 @@
 #include "../include/open_weather_client.h"
 
-OpenWeatherClient::OpenWeatherClient() 
+OpenWeatherClient::OpenWeatherClient()
 {
     //
 }
@@ -72,7 +72,7 @@ OpenWeatherClient& OpenWeatherClient::pull()
     return *this;
 }
 
-void OpenWeatherClient::printWeatherInformation(StaticJsonDocument<1024> doc)
+void OpenWeatherClient::printWeatherInformation(StaticJsonDocument<1024> &doc)
 {
     Serial.println(F("=== [OPENWEATHER CLIENT] Current weather ==="));
 

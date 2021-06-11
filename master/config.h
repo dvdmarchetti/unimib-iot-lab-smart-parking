@@ -36,13 +36,13 @@
 
 // Telegram
 #define BOT_MTBS 1000 // mean time between scan messages
-#define ALARM_ON_COMMAND "/alarm\_on"
-#define ALARM_OFF_COMMAND "/alarm\_off"
+#define ALARM_ON_COMMAND "/alarm_on"
+#define ALARM_OFF_COMMAND "/alarm_off"
 #define AVAILABILITY_COMMAND "/availability"
 #define REGISTER_CARD_COMMAND "/register_card"
-#define PARKING_INFO_COMMAND "/parking\_info"
-#define NOTIFICATIONS_ON_COMMAND "/notifications\_on"
-#define NOTIFICATIONS_OFF_COMMAND "/notifications\_off"
+#define PARKING_INFO_COMMAND "/parking_info"
+#define NOTIFICATIONS_ON_COMMAND "/notifications_on"
+#define NOTIFICATIONS_OFF_COMMAND "/notifications_off"
 #define HELP_COMMAND "/help"
 
 #define ALARM_ON_COMMAND_DESCRPTION "switch alarm ON ✅🚨"
@@ -61,5 +61,6 @@
 
 // OpenaWeather
 #define OPEN_WEATHER_PULL_PERIOD 300000
+// #define OPEN_WEATHER_PULL_PERIOD 30000
 #define WEATHER_CITY "Milan" // city
 #define WEATHER_COUNTRY "it" // ISO3166 country code

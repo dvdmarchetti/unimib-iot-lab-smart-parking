@@ -82,7 +82,7 @@ private:
   void onTelegramMessageReceived(const String &chat_id, const String &message, const String &from);
 
   // OpenWeather
-  void onWeatherReceived(StaticJsonDocument<1024> doc);
+  void onWeatherReceived(StaticJsonDocument<1024> &doc);
 
   // Utils
   void sendCommandToRoof(int command);

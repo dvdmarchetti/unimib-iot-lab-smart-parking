@@ -608,7 +608,7 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
   }
 }
 
-void MasterController::onWeatherReceived(StaticJsonDocument<1024> doc){
+void MasterController::onWeatherReceived(StaticJsonDocument<1024> &doc){
   float temperature = doc["main"]["temp"].as<float>();
   float humidity = doc["main"]["humidity"].as<float>();
   String weather = doc["weather"][0]["main"].as<String>();
@@ -645,12 +645,12 @@ boolean MasterController::getDeviceConfiguration(StaticJsonDocument<512> &config
 
   if (config.containsKey("topicToPublish")) {
     String topic = config["topicToPublish"].as<String>();
-    topic.replace("%s", mac_address);
+    topic.replace("<mac>", mac_address);
     config["topicToPublish"] = topic;
   }
 
   String topic2 = config["topicToSubscribe"].as<String>();
-  topic2.replace("%s", mac_address);
+  topic2.replace("<mac>", mac_address);
   config["topicToSubscribe"] = topic2;
 
   return true;
@@ -688,18 +688,23 @@ void MasterController::sendCommandToRoof(int command)
 	String payload;
 	serializeJson(doc, payload);
 
+  bool should_send = false;
 	for (auto device : _roof_status) {
     if (device.second != command) {
-      // Push command to each device through MQTT
-      char deviceTopic[128];
-      sprintf(deviceTopic, config["topicToSubscribe"], device.first.c_str());
-      _mqtt_writer.connect().publish(String(deviceTopic), payload, false, 1);
+      should_send = true;
 
-      // Push notification through telegram bot
-      String msg = command == 0 ? ROOF_CLOSED_MESSAGE : ROOF_OPENED_MESSAGE;
-      _telegram_manager.sendNotification(_id_to_notify, String(ROOF_CLOSED_MESSAGE), "");
+      // Push command to each device through MQTT
+      String subscribe_topic = config["topicToSubscribe"];
+      subscribe_topic.replace("<mac>", device.first);
+      _mqtt_writer.connect().publish(subscribe_topic, payload, false, 1);
 
       _roof_status[device.first] = command;
     }
+  }
+
+  if (should_send) {
+    // Push notification through telegram bot
+    String msg = command == 0 ? ROOF_CLOSED_MESSAGE : ROOF_OPENED_MESSAGE;
+    _telegram_manager.sendNotification(_id_to_notify, msg, "");
   }
 }
