@@ -199,12 +199,13 @@ void EntranceController::onMessageReceived(const String &topic, const String &pa
 
           Serial.println(F("[CONTROLLER] State: MANAGE (ACTIVE)"));
         } else if (authorized) {
+          _current_state = ON;
           Serial.println(F("[CONTROLLER] Access granted"));
 
           _display.writeSecondRow(F("> Access granted"));
           this->hold_display();
-
         } else if (! authorized) {
+          _current_state = ON;
           Serial.println(F("[CONTROLLER] Invalid card"));
 
           _display.writeSecondRow(F("> Invalid card  "));
