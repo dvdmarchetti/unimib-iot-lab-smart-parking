@@ -50,6 +50,7 @@ OpenWeatherClient& OpenWeatherClient::pull()
 
     _wifi_client.stop();
 
+    // Convert response to Json
     char jsonArray[result.length() + 1];
     result.toCharArray(jsonArray, sizeof(jsonArray));
     jsonArray[result.length() + 1] = '\0';
