@@ -1,6 +1,6 @@
-#include "include/roof_controller.h"
+#include "include/gate_controller.h"
 
-RoofController controller;
+GateController controller;
 
 void setup()
 {
