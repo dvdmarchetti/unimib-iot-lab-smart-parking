@@ -1,6 +1,5 @@
 #include "include/roof_controller.h"
 
-WiFiClient _wifi_clnt;
 RoofController controller;
 
 void setup()
