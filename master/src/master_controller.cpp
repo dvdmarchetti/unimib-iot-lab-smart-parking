@@ -17,7 +17,7 @@ void MasterController::setup()
   this->register_routes();
   _server.begin();
 
-  Serial.println(F("[CONTROLLER] Setting up telegram bot"));
+  Serial.print(F("[CONTROLLER] Setting up telegram bot"));
   _telegram_manager.setup()
     .onMessageReceived(this, &TelegramReceiver::onTelegramMessageReceived);
 

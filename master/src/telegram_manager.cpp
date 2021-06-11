@@ -16,7 +16,7 @@ TelegramManager& TelegramManager::setup()
     delay(100);
     now = time(nullptr);
   }
-  Serial.print("[TELEGRAM MANAGER] ");
+  Serial.print("\n[TELEGRAM MANAGER] ");
   Serial.println(now);
 
   return *this;
@@ -57,12 +57,12 @@ TelegramManager &TelegramManager::sendMessage(const String &chat_id, const Strin
 TelegramManager& TelegramManager::sendMessageWithReplyKeyboard(const String &chat_id, const String &message, const String &parseMode, bool resize, bool oneTime, bool selective)
 {
     bool isMessageSent = _bot.sendMessageWithReplyKeyboard(
-        chat_id, 
-        message, 
-        parseMode, 
-        build_reply_keyboard(), 
-        resize, 
-        oneTime, 
+        chat_id,
+        message,
+        parseMode,
+        build_reply_keyboard(),
+        resize,
+        oneTime,
         selective
     );
 
@@ -88,7 +88,7 @@ void TelegramManager::handle_messages(int numMessages)
   }
 }
 
-String TelegramManager::build_reply_keyboard() 
+String TelegramManager::build_reply_keyboard()
 {
     String keyboard = "[";
     keyboard += "[\"" + String(ALARM_ON_COMMAND) +"\", \"" + String(ALARM_OFF_COMMAND) + "\"],";
