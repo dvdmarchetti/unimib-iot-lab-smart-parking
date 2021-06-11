@@ -40,7 +40,7 @@ public:
   MqttWrapper& subscribe(const String topic, int qos);
   MqttWrapper& subscribeAll();
   MqttWrapper& enqueuePublishMessage(const String topic, const String message, bool retained = false, int qos = 0);
-  MqttWrapper& publish(const String topic, const String msg, bool retained, int qos);
+  MqttWrapper& publish(const String topic, const String msg, bool retained = false, int qos = 0);
   MqttWrapper& publishAll();
   MqttWrapper& setLastWill(const String topic, const String payload);
   MqttWrapper& onMessageReceived(MqttReceiver *object, MqttCallback callback);

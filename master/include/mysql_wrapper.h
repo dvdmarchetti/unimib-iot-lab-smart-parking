@@ -11,6 +11,9 @@
 #include "../secrets.h"
 
 #define QUERY_LEN 256
+#define QUERY_VALIDATE_CARD "SELECT * FROM `mvincenzi14`.`cards` WHERE card_id='%s' LIMIT 1"
+#define QUERY_AUTHORIZE_CARD "INSERT INTO `mvincenzi14`.`cards` (`card_id`) VALUES ('%s')"
+#define QUERY_REVOKE_CARD "DELETE FROM `mvincenzi14`.`cards` WHERE card_id='%s'"
 #define QUERY_SELECT_DEVICES "SELECT * FROM `mvincenzi14`.`devices`"
 #define QUERY_SELECT_CONFIGURATION "SELECT `configurations`.`parameters` FROM `mvincenzi14`.`configurations` WHERE `configurations`.`type` = '%s'"
 #define QUERY_INSERT_DEVICES "INSERT INTO `mvincenzi14`.`devices` (`mac_address`, `type`, `status`) VALUES ('%s', '%s', '%d') ON DUPLICATE KEY UPDATE `status` = '%d'"
@@ -25,11 +28,16 @@ public:
     return _INSTANCE;
   }
 
+  void validateCard(const String &card, bool &is_master, bool& is_authorized);
+  void authorizeCard(const String &card);
+  void revokeCard(const String &card);
+
   int insertDevice(const String mac_address, const String type, int status);
   int updateDevice(const String mac_address, int status);
   int insertEvent(const String category, const String description, const String device_id, int value = -1);
   String getDeviceConfiguration(const String type);
   int getDevices(int &columns, std::vector<std::vector<String>> &rows);
+
   void setAutoclose(boolean enable = false);
 
 private:

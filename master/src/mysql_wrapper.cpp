@@ -90,6 +90,36 @@ void MySqlWrapper::executeSelectAllQuery(int &num_columns, std::vector<std::vect
   }
 }
 
+void MySqlWrapper::validateCard(const String &card, bool &is_master, bool &is_authorized)
+{
+  sprintf(_query, QUERY_VALIDATE_CARD, card.c_str());
+
+  int num_columns;
+  std::vector<std::vector<String>> rows;
+  executeSelectAllQuery(num_columns, rows, _query);
+
+  is_master = false;
+  is_authorized = false;
+  if (rows.size() < 1) {
+    return;
+  }
+
+  is_master = rows[0][1] == "1";
+  is_authorized = true;
+}
+
+void MySqlWrapper::authorizeCard(const String &card)
+{
+  sprintf(_query, QUERY_AUTHORIZE_CARD, card.c_str());
+  executeInsertQuery(_query);
+}
+
+void MySqlWrapper::revokeCard(const String &card)
+{
+  sprintf(_query, QUERY_REVOKE_CARD, card.c_str());
+  executeInsertQuery(_query);
+}
+
 int MySqlWrapper::insertDevice(const String mac_address, const String type, int status)
 {
   sprintf(_query, QUERY_INSERT_DEVICES, mac_address.c_str(), type.c_str(), status, status);

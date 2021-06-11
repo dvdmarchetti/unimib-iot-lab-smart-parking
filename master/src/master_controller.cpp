@@ -102,12 +102,12 @@ void MasterController::masterLoop() {
 
 void MasterController::register_routes()
 {
-  _server.on("/", std::bind(&MasterController::handle_root, this));
-  _server.on("/api/status", HTTP_GET, std::bind(&MasterController::handle_status_get, this));
-  _server.on("/api/lights", HTTP_POST, std::bind(&MasterController::handle_lights_post, this));
-  _server.on("/api/parking-slots", HTTP_POST, std::bind(&MasterController::handle_parking_slot_post, this));
+  // _server.on("/", std::bind(&MasterController::handle_root, this));
+  // _server.on("/api/status", HTTP_GET, std::bind(&MasterController::handle_status_get, this));
+  // _server.on("/api/lights", HTTP_POST, std::bind(&MasterController::handle_lights_post, this));
+  // _server.on("/api/parking-slots", HTTP_POST, std::bind(&MasterController::handle_parking_slot_post, this));
 
-  _server.onNotFound(std::bind(&MasterController::handle_cors, this));
+  // _server.onNotFound(std::bind(&MasterController::handle_cors, this));
 }
 
 void MasterController::handle_cors()
@@ -372,26 +372,39 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 			String message = String(NOTIFICATION_INTRUSION_MESSAGE);
 			_telegram_manager.sendNotification(_id_to_notify, message, "");
     } else if (type == DEVICE_RFID_TYPE) {
-      // String card = doc["card"];
-      // String action = doc["action"];
+      StaticJsonDocument<512> config;
+      this->getConfiguration(config, DEVICE_RFID_TYPE);
+      String subscribed_topic = config["topicToSubscribe"];
+      subscribed_topic.replace("<mac>", mac_address);
 
-      // StaticJsonDocument<JSON_OBJECT_SIZE(3)> payload;
-      // payload["card"] = card;
+      String card = doc["card"];
+      String action = doc["action"];
 
-      // int card_status = MySqlWrapper::getInstance().validateCard(card);
-      // bool authorized = payload["authorized"] = card_status & 0x1;
-      // bool is_master = payload["is_master"] = card_status & 0x10;
+      StaticJsonDocument<256> payload;
+      payload["card"] = card;
 
-      // String buffer;
-      // serializeJson(doc, buffer);
+      bool is_master, is_authorized;
+      MySqlWrapper::getInstance().setAutoclose(false);
+      MySqlWrapper::getInstance().validateCard(card, is_master, is_authorized);
+      payload["is_master"] = is_master;
+      payload["authorized"] = is_authorized;
 
-      // if (action == "validate") {
-      //   if (authorized) {
-      //     _mqtt_writer.enqueuePublishMessage();
-      //   }
-      // } else if (action == "authorize") {
-      //   //
-      // }
+      if (action == "authorize") {
+        if (! is_master) {
+          if (is_authorized) {
+            MySqlWrapper::getInstance().revokeCard(card);
+          } else {
+            MySqlWrapper::getInstance().authorizeCard(card);
+          }
+          payload["authorized"] = !is_authorized;
+        }
+      }
+
+      String response;
+      serializeJson(payload, response);
+      _mqtt_writer.connect().publish(subscribed_topic, response);
+
+      MySqlWrapper::getInstance().setAutoclose(true);
     }
 
     else {
@@ -438,10 +451,10 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
 	command_list += " 	> " + String(PARKING_INFO_COMMAND) + ": " + String(PARKING_INFO_COMMAND_DESCRPTION) + "\n";
 
 	if (message.equals(ALARM_ON_COMMAND)) {
-    StaticJsonDocument<256> doc;
     StaticJsonDocument<512> config;
     this->getConfiguration(config, DEVICE_INTRUSION_TYPE);
 
+    StaticJsonDocument<256> doc;
     doc["command"] = 1;
 
     String payload;
