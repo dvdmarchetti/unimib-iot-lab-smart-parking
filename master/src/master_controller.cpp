@@ -668,9 +668,7 @@ void MasterController::buildJsonCarParkState()
   String payload;
   serializeJson(doc, payload);
 
-  for (auto id : _ws_clients_id) {
-    _ws.text((uint32_t)id, payload.c_str());
-  }
+  sendWsUpdate(payload);
 }
 
 void MasterController::sendWsUpdate(String payload)
