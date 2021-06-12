@@ -269,12 +269,12 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
           StaticJsonDocument<512> config;
           this->getConfiguration(config, DEVICE_GATE_TYPE);
 
-          auto it_roof = _roof_status.begin();
-          
-          while (it_roof != _roof_status.end()) {
-            _roof_status[it_roof->first] = 1;
+          auto it_gate = _gate_status.begin();
+
+          while (it_gate != _gate_status.end()) {
+            _gate_status[it_gate->first] = 1;
             String subscribed_topic = config["topicToSubscribe"];
-            subscribed_topic.replace("<mac>", it_roof->first);
+            subscribed_topic.replace("<mac>", it_gate->first);
 
             StaticJsonDocument<256> doc_open_gate;
             doc_open_gate["command"] = 1;
@@ -283,8 +283,7 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
             serializeJson(doc_open_gate, p);
 
             _mqtt_writer.enqueuePublishMessage(subscribed_topic, p, false, 1);
-
-            it_roof++;
+            it_gate++;
           }
 
           // Notify ws clients of gate to be opened
