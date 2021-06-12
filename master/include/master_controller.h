@@ -55,6 +55,9 @@ private:
   // Notification chat_id set
   std::set<String> _id_to_notify;
 
+  // Web socket clients id to notify
+  std::set<uint> _ws_clients_id;
+
   unsigned long _last_push;
 
   // Mqtt methods
@@ -87,6 +90,8 @@ private:
 
   // Utils
   void sendCommandToRoof(int command);
+  void sendWsUpdate(String payload);
+  void buildJsonCarParkState();
 };
 
 #endif // MASTER_CONTROLLER_HPP_

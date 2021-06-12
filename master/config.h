@@ -34,6 +34,8 @@
 #define PUSH_LIGHT_VALUES_PERIOD 300000 // 5 minutes.
 
 // Websocket Events (sent to client)
+#define WS_BOOT "ws:boot"
+
 #define WS_DEVICE_CONNECTED "device:connected"
 #define WS_DEVICE_DEAD "device:dead"
 
@@ -42,6 +44,7 @@
 
 #define WS_CARPARK_UPDATE "carpark:update"
 #define WS_INTRUSION_UPDATE "intrusion:update"
+#define WS_ALARM_UPDATE "alarm:update"
 #define WS_ROOF_UPDATE "roof:update"
 #define WS_GATE_UPDATE "gate:update"
 

@@ -49,14 +49,23 @@ void MasterController::setup_mqtt() {
 void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
 {
   if (type == WS_EVT_CONNECT) {
+    Serial.println("Client connected");
+    _ws_clients_id.insert(client->id());
+
     StaticJsonDocument<128> doc;
     doc["event"] = WS_DEVICE_CONNECTED;
 
     String payload;
     serializeJson(doc, payload);
     client->text(payload);
+
+    // TODO: send back complete initial state
+    // Stato iniziale N componenti (boot)
+    buildJsonCarParkState();
+    
   } else if (type == WS_EVT_DISCONNECT) {
     Serial.println("Client disconnected");
+    _ws_clients_id.erase(client->id());
   }
 }
 
@@ -181,6 +190,15 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       _gate_status[mac_address] = 0;
     }
 
+    // Notify ws clients of device connection
+    StaticJsonDocument<256> doc;
+    doc["event"] = WS_DEVICE_CONNECTED;
+    doc["mac"] = mac_address;
+    doc["type"] = type;
+    String payload;
+    serializeJson(doc, payload);
+    sendWsUpdate(payload);
+
     // Write device on db
     MySqlWrapper::getInstance().insertDevice(mac_address, type, 1);
 
@@ -200,6 +218,16 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       String status = doc["status"].as<String>();
       _car_park_status[mac_address] = status;
 
+      // Notify ws clients of car park status changed
+      StaticJsonDocument<256> doc;
+      doc["event"] = WS_CARPARK_UPDATE;
+      doc["mac"] = mac_address;
+      doc["status"] = status == "on" ? 1 : 0;
+      doc["busy"] = _car_park_busy[mac_address];
+      String payload;
+      serializeJson(doc, payload);
+      sendWsUpdate(payload);
+
       InfluxWrapper::getInstance().checkConnection();
       InfluxWrapper::getInstance().addTag("mac", mac_address);
       InfluxWrapper::getInstance().addTag("type", type);
@@ -218,6 +246,16 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 
 			String message = String(NOTIFICATION_INTRUSION_MESSAGE);
 			_telegram_manager.sendNotification(_id_to_notify, message, "");
+
+      // Notify ws clients of car park status changed
+      StaticJsonDocument<256> doc;
+      doc["event"] = WS_INTRUSION_UPDATE;
+      doc["mac"] = mac_address;
+      doc["status"] = _alarm_status[mac_address];
+      doc["intrusion"] = _intrusion_detected[mac_address];
+      String payload;
+      serializeJson(doc, payload);
+      sendWsUpdate(payload);
     } else if (type == DEVICE_RFID_TYPE) {
       StaticJsonDocument<512> config;
       this->getConfiguration(config, DEVICE_RFID_TYPE);
@@ -236,8 +274,19 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       payload["is_master"] = is_master;
       payload["authorized"] = is_authorized;
 
-      if (action == "verify" && ! is_authorized) {
-        _telegram_manager.sendNotification(_id_to_notify, NOTIFICATION_INVALID_CARD, "");
+      if (action == "verify") {
+
+        if (is_authorized) {
+          // TODO: GATE APERTO MQTT + WS.
+
+          // Notify ws clients of gate to be opened
+          StaticJsonDocument<256> doc;
+          doc["event"] = WS_GATE_UPDATE;
+          doc["mac"] = mac_address;
+          doc["status"] = 1;
+        } else {
+          _telegram_manager.sendNotification(_id_to_notify, NOTIFICATION_INVALID_CARD, "");
+        }
       }
 
       if (action == "authorize") {
@@ -245,9 +294,27 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
           if (is_authorized) {
             MySqlWrapper::getInstance().revokeCard(card);
             _telegram_manager.sendNotification(_id_to_notify, NOTIFICATION_CARD_REMOVED, "");
+
+            // Notify ws clients of removed card
+            StaticJsonDocument<256> doc;
+            doc["event"] = WS_CARD_REMOVED;
+            doc["mac"] = mac_address;
+            doc["card"] = card;
+            String payload;
+            serializeJson(doc, payload);
+            sendWsUpdate(payload);
           } else {
             MySqlWrapper::getInstance().authorizeCard(card);
             _telegram_manager.sendNotification(_id_to_notify, NOTIFICATION_CARD_REGISTERED, "");
+
+            // Notify ws clients of registered card
+            StaticJsonDocument<256> doc;
+            doc["event"] = WS_CARD_REMOVED;
+            doc["mac"] = mac_address;
+            doc["card"] = card;
+            String payload;
+            serializeJson(doc, payload);
+            sendWsUpdate(payload);
           }
           payload["authorized"] = !is_authorized;
         }
@@ -282,6 +349,15 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
     } else if (type == DEVICE_GATE_TYPE) {
       _gate_status.erase(mac_address);
     }
+
+    // Notify web socket of device death
+    StaticJsonDocument<256> doc;
+    doc["event"] = WS_DEVICE_DEAD;
+    doc["mac"] = mac_address;
+    doc["type"] = type;
+    String payload;
+    serializeJson(doc, payload);
+    sendWsUpdate(payload);
 
     // Update status for this specific device
     MySqlWrapper::getInstance().updateDevice(mac_address, 0);
@@ -323,6 +399,14 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
     }
 
 		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, "Alarm armed!", "");
+
+    // Notify ws clients of alarm armed
+    StaticJsonDocument<256> doc_alarm;
+    doc_alarm["event"] = WS_ALARM_UPDATE;
+    doc_alarm["status"] = 1;
+    String payload_alarm;
+    serializeJson(doc_alarm, payload_alarm);
+    sendWsUpdate(payload_alarm);
   } else if (message.equals(ALARM_OFF_COMMAND)) {
     StaticJsonDocument<256> doc;
     StaticJsonDocument<512> config;
@@ -343,7 +427,15 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
     }
 
 		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, "Alarm off!", "");
-	} else if (message.equals(AVAILABILITY_COMMAND)) {
+
+    // Notify ws clients of alarm off
+    StaticJsonDocument<256> doc_alarm;
+    doc_alarm["event"] = WS_ALARM_UPDATE;
+    doc_alarm["status"] = 0;
+    String payload_alarm;
+    serializeJson(doc_alarm, payload_alarm);
+    sendWsUpdate(payload_alarm);
+  } else if (message.equals(AVAILABILITY_COMMAND)) {
     uint available = 0, total = 0;
     auto it = _car_park_busy.begin();
 
@@ -493,5 +585,97 @@ void MasterController::sendCommandToRoof(int command)
     // Push notification through telegram bot
     String msg = command == 0 ? NOTIFICATION_ROOF_CLOSED_MESSAGE : NOTIFICATION_ROOF_OPENED_MESSAGE;
     _telegram_manager.sendNotification(_id_to_notify, msg, "");
+
+    // Notify ws clients of alarm off
+    StaticJsonDocument<256> doc;
+    doc["event"] = WS_ROOF_UPDATE;
+    doc["status"] = command;
+    String payload;
+    serializeJson(doc, payload);
+    sendWsUpdate(payload);
+  }
+}
+
+void MasterController::buildJsonCarParkState()
+{
+  DynamicJsonDocument doc(1536);
+  doc["event"] = WS_BOOT;
+
+  // 1. Alarms status
+  if (_alarm_status.size() > 0 && _intrusion_detected.size() > 0) {
+    uint alarmArmed = _alarm_status.begin()->second;
+    uint intrusion = _intrusion_detected.begin()->second;
+
+    doc["alarm"] = alarmArmed;
+    doc["intrusion"] = intrusion;
+  }
+
+  // 2. Gate status
+  if (_gate_status.size() > 0) {
+    uint gateOpen = _gate_status.begin()->second;
+
+    doc["gate"] = gateOpen;
+  }
+
+  // 3. Gate status
+  if (_roof_status.size() > 0) {
+    uint roofOpen = _roof_status.begin()->second;
+
+    doc["roof"] = roofOpen;
+  }
+
+  // 4. Cards
+  int columns;
+  std::vector<std::vector<String>> rows;
+  MySqlWrapper::getInstance().getCards(columns, rows);
+
+  JsonArray cards = doc.createNestedArray("cards");
+  for (auto row : rows) {
+    JsonObject card = cards.createNestedObject();
+    card["card_id"] = row[0];
+    card["is_master"] = (bool)row[1].toInt();
+    card["registered_at"] = row[2];
+  }
+
+  // 5. Devices
+  MySqlWrapper::getInstance().getDevices(columns, rows);
+
+  JsonObject devices = doc.createNestedObject("devices");
+  for (auto row : rows) {
+    JsonObject device = devices.createNestedObject(row[0]);
+    device["device_id"] = row[0];
+    device["type"] = row[1];
+    device["online"] = (bool)row[2].toInt();
+    device["last_seen"] = row[3];
+  }
+
+  // 6. Car-park slots
+  JsonArray parking_slots_availability = doc.createNestedArray("parking_slots_availability");
+
+  auto busy_it = _car_park_busy.begin();
+  auto status_it = _car_park_status.begin();
+  while (busy_it != _car_park_busy.end() && status_it != _car_park_status.end()) {
+    JsonObject slot = parking_slots_availability.createNestedObject();
+
+    slot["mac_address"] = status_it->first;
+    slot["busy"] = busy_it->second;
+    slot["status"] = status_it->second;
+
+    busy_it++;
+    status_it++;
+  }
+
+  String payload;
+  serializeJson(doc, payload);
+
+  for (auto id : _ws_clients_id) {
+    _ws.text((uint32_t)id, payload.c_str());
+  }
+}
+
+void MasterController::sendWsUpdate(String payload)
+{
+  for (auto id : _ws_clients_id) {
+    _ws.text((uint32_t)id, payload.c_str());
   }
 }
