@@ -52,18 +52,8 @@ void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *cli
     Serial.println("Client connected");
     _ws_clients_id.insert(client->id());
 
-    StaticJsonDocument<128> doc;
-    doc["event"] = WS_DEVICE_CONNECTED;
-
-    String payload;
-    serializeJson(doc, payload);
-    client->text(payload);
-
-    // TODO: send back complete initial state
-    // Stato iniziale N componenti (boot)
-    buildJsonCarParkState();
-    
-  } else if (type == WS_EVT_DISCONNECT) {
+    client->text(buildJsonCarParkState());
+    } else if (type == WS_EVT_DISCONNECT) {
     Serial.println("Client disconnected");
     _ws_clients_id.erase(client->id());
   }
@@ -275,9 +265,26 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       payload["authorized"] = is_authorized;
 
       if (action == "verify") {
-
         if (is_authorized) {
-          // TODO: GATE APERTO MQTT + WS.
+          StaticJsonDocument<512> config;
+          this->getConfiguration(config, DEVICE_GATE_TYPE);
+
+          auto it_gate = _gate_status.begin();
+
+          while (it_gate != _gate_status.end()) {
+            _gate_status[it_gate->first] = 1;
+            String subscribed_topic = config["topicToSubscribe"];
+            subscribed_topic.replace("<mac>", it_gate->first);
+
+            StaticJsonDocument<256> doc_open_gate;
+            doc_open_gate["command"] = 1;
+
+            String p;
+            serializeJson(doc_open_gate, p);
+
+            _mqtt_writer.enqueuePublishMessage(subscribed_topic, p, false, 1);
+            it_gate++;
+          }
 
           // Notify ws clients of gate to be opened
           StaticJsonDocument<256> doc;
@@ -596,7 +603,7 @@ void MasterController::sendCommandToRoof(int command)
   }
 }
 
-void MasterController::buildJsonCarParkState()
+String MasterController::buildJsonCarParkState()
 {
   DynamicJsonDocument doc(1536);
   doc["event"] = WS_BOOT;
@@ -668,7 +675,7 @@ void MasterController::buildJsonCarParkState()
   String payload;
   serializeJson(doc, payload);
 
-  sendWsUpdate(payload);
+  return payload;
 }
 
 void MasterController::sendWsUpdate(String payload)
