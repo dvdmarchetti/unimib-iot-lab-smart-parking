@@ -650,7 +650,7 @@ void MasterController::buildJsonCarParkState()
   }
 
   // 6. Car-park slots
-  JsonArray parking_slots_availability = doc.createNestedArray("parking_slots_availability");
+  JsonArray parking_slots_availability = doc.createNestedArray("slots");
 
   auto busy_it = _car_park_busy.begin();
   auto status_it = _car_park_status.begin();
