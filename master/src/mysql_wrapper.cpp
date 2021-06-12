@@ -90,6 +90,11 @@ void MySqlWrapper::executeSelectAllQuery(int &num_columns, std::vector<std::vect
   }
 }
 
+void MySqlWrapper::getCards(int &columns, std::vector<std::vector<String>> &rows)
+{
+  executeSelectAllQuery(columns, rows, QUERY_SELECT_CARDS);
+}
+
 void MySqlWrapper::validateCard(const String &card, bool &is_master, bool &is_authorized)
 {
   sprintf(_query, QUERY_VALIDATE_CARD, card.c_str());
