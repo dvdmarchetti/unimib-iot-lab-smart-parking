@@ -91,7 +91,7 @@ private:
   // Utils
   void sendCommandToRoof(int command);
   void sendWsUpdate(String payload);
-  void buildJsonCarParkState();
+  String buildJsonCarParkState();
 };
 
 #endif // MASTER_CONTROLLER_HPP_
