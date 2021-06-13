@@ -32,59 +32,68 @@
         <span v-if="loading" class="uppercase text-gray-600 text-xs mx-1 py-1 inline-block">(updating)</span>
       </h2>
       <div class="flex gap-2">
-        <div class="flex flex-row bg-white shadow-sm items-center rounded p-3 h-full cursor-pointer" :class="{'cursor-not-allowed': !('display' in status)}" @click="displayToggle">
-          <div class="flex items-center justify-center flex-shrink-0 h-12 w-12 rounded bg-gray-100 text-gray-300 transition"
-            :class="{'bg-green-100': status.display, 'text-green-500': status.display}">
-            <i class="uil uil-desktop text-2xl"></i>
-          </div>
-          <div class="flex flex-col flex-grow ml-2 justify-center">
-            <div class="text-sm text-gray-600 font-bold nunito">External Display</div>
-            <div class="font-semibold uppercase text-gray-400 transition" :class="{ 'text-green-500': status.display }">
-              <span v-if="!('display' in status)">OFFLINE</span>
-              <span v-else-if="status.display">On</span>
-              <span v-else>Off</span>
-            </div>
-          </div>
-        </div>
+        <status-card :has-component="'lights' in status" :status="status.lights" title="Lights" tint="yellow" icon="lightbulb-alt" @click="lightsToggle"></status-card>
+        <status-card :has-component="'alarm' in status" :status="status.alarm" title="Alarm" tint="blue" icon="bell-school" @click="alarmToggle"></status-card>
+        <status-card :has-component="'intrusion' in status" :status="status.intrusion" title="Intrusion" tint="red" icon="exclamation-octagon" @click="intrusionToggle"></status-card>
+        <status-card :has-component="'roof' in status" :status="status.roof" title="Roof" tint="green" icon="cloud-showers-heavy" :labels="['OPEN', 'CLOSED']" @click="roofToggle"></status-card>
+        <status-card :has-component="'gate' in status" :status="status.gate" title="Gate" tint="purple" icon="signin" :labels="['CLOSED', 'OPEN']" @click="gateToggle"></status-card>
+      </div>
+    </div>
 
-        <div class="flex flex-row items-center bg-white shadow-sm rounded p-3 h-full cursor-pointer" :class="{'cursor-not-allowed': !('lights' in status)}" @click="lightsToggle">
-          <div class="flex items-center justify-center flex-shrink-0 h-12 w-12 rounded bg-gray-100 text-gray-300" :class="{ 'bg-yellow-100': status.lights > 0, 'text-yellow-500': status.lights > 0 }">
-            <i class="uil uil-lightbulb-alt text-2xl"></i>
-          </div>
-          <div class="flex flex-col flex-grow ml-3 justify-center">
-            <div class="text-sm text-gray-600 font-bold nunito">Automatic Lights</div>
-            <div class="font-semibold uppercase text-gray-400 transition" :class="{ 'text-yellow-600': status.lights > 0 }">
-              <span v-if="!('lights' in status)">OFFLINE</span>
-              <span v-else-if="status.lights == 0">OFF</span>
-              <span v-else-if="status.lights == 1">ON</span>
-              <span v-else>AUTO</span>
-            </div>
-          </div>
+    <div class="container mx-auto my-2 max-w-screen-lg px-8">
+      <div class="flex-1">
+        <h2 class="text-2xl font-semibold ml-3 mb-1">System Devices</h2>
+        <div class="bg-white shadow-sm rounded">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-200 text-gray-600 border-separate">
+                <th class="py-1 px-2 pl-3 font-semibold rounded-tl">Type</th>
+                <th class="py-1 px-2 font-semibold">Device</th>
+                <th class="py-1 px-1 font-semibold rounded-tr">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-if="Object.keys(devices).length">
+                <tr v-for="device, key, index in devices" :key="key" class="border-separate border-t border-gray-200 hover:bg-gray-100" :class="{'bg-gray-50': index%2==1}">
+                  <td class="py-2 px-2 pl-3 font-mono rounded-bl">{{ device.type }}</span></td>
+                  <td class="py-2 px-2 font-mono">{{ device.device_id }}</td>
+                  <td class="py-2 px-1 rounded-br">
+                    <span v-if="device.online" class="-mt-1 px-1.5 py-px rounded-full bg-green-200 text-xs text-green-700 font-bold">ONLINE</span>
+                    <span v-else :title="device.last_seen | moment('add', '2 hours')">{{ device.last_seen | moment("add", "2 hours", "from") }}</span>
+                  </td>
+                </tr>
+              </template>
+              <tr v-else>
+                <td colspan="3" class="text-center px-2 py-2">No device available.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
-    <div class="container mx-auto my-2 max-w-screen-lg px-8 md:flex gap-2">
+    <div class="container mx-auto my-4 max-w-screen-lg px-8 md:flex gap-2 mb-2">
       <div class="flex-1">
-        <h2 class="text-2xl font-semibold ml-3 mb-1">System Devices</h2>
+        <h2 class="text-2xl font-semibold ml-3 mb-1">Authorized Cards</h2>
         <div class="bg-white shadow-sm rounded">
-          <p class="px-3 py-2">Within this section of the dashboard, you can see the devices that are currently attached to the system as well as the previously connected ones.</p>
           <table class="w-full text-sm">
             <thead>
-              <tr class="bg-gray-200 text-gray-600">
-                <th class="py-1 px-2 pl-3 font-semibold">Type</th>
-                <th class="py-1 px-2 font-semibold">Device</th>
-                <th class="py-1 px-1 font-semibold">Status</th>
+              <tr class="bg-gray-200 text-gray-600 border-separate">
+                <th class="py-1 px-2 pl-3 font-semibold rounded-tl">ID</th>
+                <th class="py-1 px-1 font-semibold rounded-tr">Registered At</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="device, index in devices" :key="device.device_id" class="border-t border-gray-200 hover:bg-gray-100" :class="{'bg-gray-50': index%2==1}">
-                <td class="py-2 px-2 pl-3 font-mono">{{ device.type }}</span></td>
-                <td class="py-2 px-2 font-mono">{{ device.device_id }}</td>
-                <td class="py-2 px-1">
-                  <span v-if="device.online" class="-mt-1 px-1.5 py-px rounded-full bg-green-200 text-xs text-green-700 font-bold">Online</span>
-                  <span v-else :title="device.last_seen">{{ device.last_seen | moment("add", "2 hours", "from") }}</span>
-                </td>
+              <template v-if="Object.keys(cards).length">
+                <tr v-for="card, key, index in cards" :key="key" class="border-separate border-t border-gray-200 hover:bg-gray-100" :class="{'bg-gray-50': index%2==1}">
+                  <td class="py-2 px-2 pl-3 font-mono rounded-bl">{{ card.card_id }}
+                    <span v-if="card.is_master" class="rounded-full text-xs font-semibold bg-purple-200 text-purple-800 px-1.5 py-0.5">MASTER</span>
+                  </td>
+                  <td class="py-2 px-1 rounded-br" :title="card.registered_at | moment('add', '2 hours')">{{ card.registered_at | moment("add", "2 hours", "from") }}</td>
+                </tr>
+              </template>
+              <tr v-else>
+                <td colspan="3" class="text-center px-2 py-2">No device available.</td>
               </tr>
             </tbody>
           </table>
@@ -95,7 +104,7 @@
         <h2 class="ml-3 mb-1 text-2xl font-semibold">Parking Lot Status</h2>
         <div class="px-3 py-2 bg-white shadow-sm rounded">
           <p>Empty parking slot indicators will be populated when new parking sensors are detected.</p>
-          <div class="mt-6 flex items-baseline">
+          <div class="py-3 flex items-center">
             <div class="grid grid-cols-12 w-full mr-4 text-center">
               <div class="text-2xl py-1 cursor-pointer" v-for="slot, index in slots" :key="'p'+index" @click="parkingSlotToggle(index, slot.mac_address)">
                 <span v-if="slot.status == 'on'">
@@ -108,7 +117,7 @@
                 </span>
               </div>
 
-              <div class="text-2xl py-1 text-gray-300" v-for="_, index in (12 - slots.length)" :key="'e'+index">
+              <div class="text-2xl py-1 text-gray-300" v-for="_, index in (12 - Object.keys(slots).length)" :key="'e'+index">
                 &bull;
               </div>
             </div>
@@ -122,181 +131,264 @@
     </div>
   </div><!-- /#app -->
 
-  <div class="container mx-auto text-xs text-gray-500 tracking-wide text-center py-2">
+  <div class="container mx-auto text-xs text-gray-500 tracking-wide text-center py-2 mb-2">
     <p class="sm:inline-block">Marchetti / Vincenzi &ndash;  Laboratorio IoT@Unimib &ndash; A.A.2020/2021</p>
     <span class="hidden sm:inline-block"> &ndash; </span>
     <p class="sm:inline-block">Unicons by <a href="https://iconscout.com/" class="text-purple-500">Iconscout</a></p>
   </div>
 
+  <template id="status-card">
+    <div class="flex-grow flex flex-row items-center bg-white shadow-sm rounded p-3 h-full cursor-pointer" :class="{'cursor-not-allowed': !hasComponent}" @click="$emit('click')">
+      <div class="flex items-center justify-center flex-shrink-0 h-12 w-12 rounded bg-gray-100 text-gray-300" :class="{ [`bg-${tint}-100`]: status > 0, [`text-${tint}-500`]: status > 0 }">
+        <i class="uil text-2xl" :class="{ [`uil-${icon}`]: true }"></i>
+      </div>
+      <div class="flex flex-col flex-grow ml-3 justify-center">
+        <div class="text-sm text-gray-600 font-bold nunito">{{ title }}</div>
+        <div class="font-semibold uppercase text-gray-400 transition" :class="{ [`text-${tint}-600`]: status > 0 }">
+          <span v-if="!hasComponent">OFFLINE</span>
+          <span v-else-if="status >= 0 && status < _labels.length">{{ _labels[status] }}</span>
+          <span v-else>UNKNOWN</span>
+        </div>
+      </div>
+    </div>
+  </template>
+
 <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue-moment@4.1.0/dist/vue-moment.min.js"></script>
 <script>
-  const EVENTS = Object.freeze({
-    WS_INITIAL: 'boot',
+// const EVENTS = Object.freeze({
+//   WS_INITIAL: 'ws:boot',
 
-    WS_DEVICE_CONNECTED: 'device:connected',
-    WS_DEVICE_DEAD: 'device:dead',
+//   WS_DEVICE_CONNECTED: 'device:connected',
+//   WS_DEVICE_DEAD: 'device:dead',
 
-    WS_CARD_AUTHORIZED: 'card:authorized',
-    WS_CARD_REMOVED: 'card:removed',
+//   WS_CARD_AUTHORIZED: 'card:authorized',
+//   WS_CARD_REMOVED: 'card:removed',
 
-    WS_CARPARK_UPDATE: 'carpark:update',
-    WS_INTRUSION_UPDATE: 'intrusion:update',
-    WS_ROOF_UPDATE: 'roof:update',
-    WS_GATE_UPDATE: 'gate:update',
-    // 'WS_LIGHTS_UPDATE',
-  });
+//   WS_CARPARK_UPDATE: 'carpark:update',
+//   WS_ALARM_UPDATE: 'alarm:update',
+//   WS_INTRUSION_UPDATE: 'intrusion:update',
+//   WS_ROOF_UPDATE: 'roof:update',
+//   WS_GATE_UPDATE: 'gate:update',
+//   // 'WS_LIGHTS_UPDATE',
+// });
 
-  const ENDPOINT = '';
-  Vue.use(vueMoment);
-  const app = new Vue({
-    el: '#app',
-    data: {
-      ws: null,
-      loading: false,
-      status: {},
-      devices: [],
-      cards: [],
-      slots: [],
+// const ENDPOINT = '';
+Vue.component('status-card', {
+  template: '#status-card',
+  props: ['hasComponent', 'status', 'title', 'tint', 'icon', 'labels'],
+
+  computed: {
+    _labels() {
+      return this.labels || ['OFF', 'ON', 'AUTO']
+    }
+  }
+})
+
+Vue.use(vueMoment);
+const app = new Vue({
+  el: '#app',
+  data: {
+    ws: null,
+    loading: false,
+    status: {
+      lights: 1,
+      alarm: 1,
+      intrusion: 1,
+      roof: 1,
+      gate: 1
+    },
+    devices: {
+      "ba:b3:bb:c2:dc:43": {
+        "device_id": "ba:b3:bb:c2:dc:43",
+        "type": "CAR-PARK",
+        "online": false,
+        "last_seen": "2021-05-19T16:00:47Z"
+      },
+      "5e:c4:be:7f:cc:61": {
+        "device_id": "5e:c4:be:7f:cc:61",
+        "type": "CAR-PARK",
+        "online": true,
+        "last_seen": "2021-05-19T17:22:51Z"
+      },
+      "34:6d:4e:d0:a9:e2": {
+        "device_id": "34:6d:4e:d0:a9:e2",
+        "type": "CAR-PARK",
+        "online": false,
+        "last_seen": "2021-05-19T14:09:24Z"
+      },
+      "52:3b:a0:58:0a:d3": {
+        "device_id": "52:3b:a0:58:0a:d3",
+        "type": "CAR-PARK",
+        "online": false,
+        "last_seen": "2021-05-19T09:58:11Z"
+      },
+    },
+    cards: {
+      "bab3bbc2": {
+        "card_id": "bab3bbc2",
+        "is_master": true,
+        "registered_at": "2021-06-06T11:32:33Z",
+      },
+      "5ec4be7f": {
+        "card_id": "5ec4be7f",
+        "is_master": false,
+        "registered_at": "2021-06-07T09:16:41Z",
+      },
+      "346d4ed0": {
+        "card_id": "346d4ed0",
+        "is_master": false,
+        "registered_at": "2021-06-07T06:01:23Z",
+      },
+    },
+    slots: {},
+  },
+
+  mounted () {
+    // this.ws = new WebSocket('ws://192.168.1.148/ws')
+    // this.ws.onopen = () => console.log('Connected')
+    // this.ws.onerror = (error) => console.err('Error: ' + error)
+    // this.ws.onmessage = this.handleMessage
+  },
+
+  methods: {
+    handleMessage(event) {
+      payload = JSON.parse(event.data)
+      fn = 'handle' + payload.event.split(':').map(s => s[0].toUpperCase()+s.slice(1)).join('')
+      this[fn](payload);
     },
 
-    mounted () {
-      this.ws = new WebSocket('ws://192.168.1.148/ws')
-      this.ws.onopen = () => console.log('Connected')
-      this.ws.onerror = (error) => console.err('Error: ' + error)
-      this.ws.onmessage = this.handleMessage
+    handleWsBoot(payload) {
+      console.log('handleWsBoot', payload)
+      this.status.alarm = payload.alarm;
+      this.status.intrusion = payload.intrusion;
+      this.status.gate = payload.gate;
+      this.status.roof = payload.roof;
+
+      this.cards = payload.cards;
+      this.devices = payload.devices;
+      this.slots = payload.slots;
     },
 
-    methods: {
-      handleMessage(event) {
-        payload = JSON.parse(event.data)
-        fn = 'handle' + payload.event.split(':').map(s => s[0].toUpperCase()+s.slice(1)).join('')
-        this[fn](payload);
-      },
+    handleDeviceConnected(payload) {
+      console.log('handleDeviceConnected', payload)
+      this.devices[payload.mac_address] = payload.device
 
-      handleDeviceConnected(payload) {
-        console.log('handleDeviceConnected', payload);
-      },
+      if (payload.type == 'car-park') {
+        this.slots[payload.mac_address] = payload.device
+      }
+    },
 
-      handleDeviceDead(payload) {
-        console.log('handleDeviceDead', payload);
-      },
+    handleDeviceDead(payload) {
+      console.log('handleDeviceDead', payload)
+      this.$delete(this.devices, payload.mac_address)
 
-      handleCardAuthorized(payload) {
-        console.log('handleCardAuthorized', payload);
-      },
+      if (payload.type == 'car-park') {
+        this.$delete(this.slots, payload.mac_address)
+      }
+    },
 
-      handleCardRemoved(payload) {
-        console.log('handleCardRemoved', payload);
-      },
+    handleCardAuthorized(payload) {
+      console.log('handleCardAuthorized', payload)
+      this.cards[payload.card] = true;
+    },
 
-      handleCarparkUpdate(payload) {
-        console.log('handleCarparkUpdate', payload);
-      },
+    handleCardRemoved(payload) {
+      console.log('handleCardRemoved', payload)
+      this.$delete(this.cards, payload.card)
+    },
 
-      handleIntrusionUpdate(payload) {
-        console.log('handleIntrusionUpdate', payload);
-      },
+    handleCarparkUpdate(payload) {
+      console.log('handleCarparkUpdate', payload)
+      this.slots[payload.mac_address] = payload.status === 1;
+    },
 
-      handleRoofUpdate(payload) {
-        console.log('handleRoofUpdate', payload);
-      },
+    handleAlarmUpdate(payload) {
+      console.log('handleCarparkUpdate', payload)
+      this.status.alarm = payload.status === 1;
+    },
 
-      handleGateUpdate(payload) {
-        console.log('handleGateUpdate', payload);
-      },
+    handleIntrusionUpdate(payload) {
+      console.log('handleIntrusionUpdate', payload)
+      this.status.intrusion = payload.status === 1;
+    },
 
-      async fetchData() {
-        if (this.loading) {
-          return;
-        }
+    handleRoofUpdate(payload) {
+      console.log('handleRoofUpdate', payload)
+      this.status.roof = payload.status === 0;
+    },
 
-        try {
-          this.loading = true;
+    handleGateUpdate(payload) {
+      console.log('handleGateUpdate', payload)
+      this.status.gate = payload.status === 1;
+    },
 
-          let response = await fetch(ENDPOINT+'/api/status');
-          // const response = await fetch(ENDPOINT+'/data.json');
+    async fetchData() {
+      try {
+        let response = await fetch(ENDPOINT+'/api/status');
+        // const response = await fetch(ENDPOINT+'/data.json');
 
-          const data = await response.json();
-          this.status = data.status
-          this.devices = data.devices
-          this.slots = data.parking_slots_availability
-        } catch {
-          this.error = "Update failed"
-        }
+        const data = await response.json();
+        this.status = data.status
+        this.devices = data.devices
+        this.slots = data.parking_slots_availability
+      } catch {
+        this.error = "Update failed"
+      }
 
-        this.loading = false;
-      },
+      this.loading = false;
+    },
 
-      async displayToggle() {
-        if (this.loading) {
-          return;
-        }
+    async displayToggle() {
+      try {
+        const command = (!this.status.display) ? "on" : "off"
+        const response = await fetch(ENDPOINT+'/api/display', {
+          method: 'POST',
+          body: JSON.stringify({ command: command })
+        });
 
-        try {
-          this.loading = true;
+        this.status.display = !this.status.display
+      } catch {
+        this.error = "Update failed"
+      }
+    },
 
-          const command = (!this.status.display) ? "on" : "off"
-          const response = await fetch(ENDPOINT+'/api/display', {
-            method: 'POST',
-            body: JSON.stringify({ command: command })
-          });
+    async lightsToggle() {
+      try {
+        const command = (this.status.lights+1) % 3;
+        const response = await fetch(ENDPOINT+'/api/lights', {
+          method: 'POST',
+          body: JSON.stringify({ command: command })
+        });
 
-          this.status.display = !this.status.display
-        } catch {
-          this.error = "Update failed"
-        }
+        // console.log((this.status.lights+1)%3);
+        this.status.lights = (this.status.lights+1) % 3
+      } catch {
+        this.error = "Update failed"
+      }
+    },
 
-        this.loading = false;
-      },
+    async alarmToggle() {},
+    async intrusionToggle() {},
+    async roofToggle() {},
+    async gateToggle() {},
 
-      async lightsToggle() {
-        if (this.loading) {
-          return;
-        }
+    async parkingSlotToggle(index, mac) {
+      try {
+        const command = (this.slots[index].status == "on") ? "off" : "on";
+        const response = await fetch(ENDPOINT+'/api/parking-slots?device_id='+mac, {
+          method: 'POST',
+          body: JSON.stringify({ command: command })
+        });
 
-        try {
-          this.loading = true;
-
-          const command = (this.status.lights+1) % 3;
-          const response = await fetch(ENDPOINT+'/api/lights', {
-            method: 'POST',
-            body: JSON.stringify({ command: command })
-          });
-
-          // console.log((this.status.lights+1)%3);
-          this.status.lights = (this.status.lights+1) % 3
-        } catch {
-          this.error = "Update failed"
-        }
-
-        this.loading = false;
-      },
-
-      async parkingSlotToggle(index, mac) {
-        if (this.loading) {
-          return;
-        }
-
-        try {
-          this.loading = true;
-
-          const command = (this.slots[index].status == "on") ? "off" : "on";
-          const response = await fetch(ENDPOINT+'/api/parking-slots?device_id='+mac, {
-            method: 'POST',
-            body: JSON.stringify({ command: command })
-          });
-
-          this.$set(this.slots, index, {...this.slots[index], status: command});
-        } catch {
-          this.error = "Update failed"
-        }
-
-        this.loading = false;
+        this.$set(this.slots, index, {...this.slots[index], status: command});
+      } catch {
+        this.error = "Update failed"
       }
     }
-  })
+  }
+})
 </script>
 </body>
 </html>
