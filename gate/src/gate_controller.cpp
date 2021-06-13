@@ -84,7 +84,8 @@ void GateController::fsm_loop()
       } else if (millis() - _start_open >= _open_time) {
         _current_state = CLOSE;
 
-        StaticJsonDocument<JSON_OBJECT_SIZE(2)> doc;
+        StaticJsonDocument<JSON_OBJECT_SIZE(4)> doc;
+        doc["mac_address"] = DEVICE_MAC_ADDRESS;
         doc["status"] = 0;
 
         String payload;
