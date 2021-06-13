@@ -83,6 +83,11 @@ void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *cli
       deviceTopic.replace("<mac>", it_alarm->first);
       _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
 
+      char event[128];
+      String cmd = command == 1 ? "ON" : "OFF";
+      sprintf(event, DASHBOARD_COMMAND_EVENT, "ALARM", command);
+      MySqlWrapper::getInstance().insertEvent(DASHBOARD_EVENT_CATEGORY, String(event), it_alarm->first);
+
       it_alarm++;
     }
   } else if (eventType == WS_SERVER_GATE_OPEN) {
@@ -362,6 +367,9 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       String payload;
       serializeJson(doc, payload);
       sendWsUpdate(payload);
+
+      // Push intrusion event on MySQL
+      MySqlWrapper::getInstance().insertEvent(DEVICE_EVENT_CATEGORY, DEVICE_INTRUSION_DETECTED, mac_address);
     } else if (type == DEVICE_RFID_TYPE) {
       StaticJsonDocument<512> config;
       this->getConfiguration(config, DEVICE_RFID_TYPE);
@@ -409,6 +417,12 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
           doc["status"] = 1;
         } else {
           _telegram_manager.sendNotification(_id_to_notify, NOTIFICATION_INVALID_CARD, "");
+
+          char event[128];
+          sprintf(event, DEVICE_RFID_ACCESS_DENIED, card);
+          
+          // Push intrusion event on MySQL
+          MySqlWrapper::getInstance().insertEvent(DEVICE_EVENT_CATEGORY, String(event), mac_address);
         }
       }
 
@@ -519,6 +533,10 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
       String deviceTopic = config["topicToSubscribe"];
       deviceTopic.replace("<mac>", device.first);
       _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+
+      char event[128];
+      sprintf(event, TELEGRAM_COMMAND_EVENT, "ALARM", "ON");
+      MySqlWrapper::getInstance().insertEvent(TELEGRAM_EVENT_CATEGORY, String(event), device.first);
     }
 
 		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, "Alarm armed!", "");
@@ -547,6 +565,10 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
       String deviceTopic = config["topicToSubscribe"];
       deviceTopic.replace("<mac>", device.first);
       _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+
+      char event[128];
+      sprintf(event, TELEGRAM_COMMAND_EVENT, "ALARM", "OFF");
+      MySqlWrapper::getInstance().insertEvent(TELEGRAM_EVENT_CATEGORY, String(event), device.first);
     }
 
 		_telegram_manager.sendMessageWithReplyKeyboard(chat_id, "Alarm off!", "");
@@ -572,8 +594,6 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
 
     String message = "Availability: " + String(available) + "/" + String(total);
     _telegram_manager.sendMessageWithReplyKeyboard(chat_id, message, "");
-  } else if (message.equals(REGISTER_CARD_COMMAND)) {
-    // TODO
   } else if (message.equals(PARKING_INFO_COMMAND)) {
     String response = "Smart Parking status:\n";
 
