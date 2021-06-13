@@ -448,9 +448,20 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       _mqtt_writer.connect().publish(subscribed_topic, response);
 
       MySqlWrapper::getInstance().setAutoclose(true);
-    }
+    } else if (type == DEVICE_GATE_TYPE) {
+      _gate_status[mac_address] = doc["status"].as<uint>();
 
-    else {
+      // Notify ws clients of intrusion state changed
+      StaticJsonDocument<256> doc;
+      doc["event"] = WS_GATE_UPDATE;
+      doc["mac"] = mac_address;
+      doc["status"] = _gate_status[mac_address];
+
+      String payload;
+      serializeJson(doc, payload);
+
+      sendWsUpdate(payload);
+    } else {
       Serial.println("Device type not recognized");
     }
   } else if (topic.startsWith(String(MQTT_LAST_WILL_PREFIX).c_str())) {
