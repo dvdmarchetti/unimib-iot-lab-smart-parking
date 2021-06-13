@@ -2,9 +2,10 @@
 
 #include <ArduinoJson.h>
 
-GateController::GateController() : _mqtt_reader(MqttWrapper("Reader", MQTT_BROKERIP, MQTT_CLIENTID_READER, MQTT_USERNAME, MQTT_PASSWORD)),
-                                  _mqtt_writer(MqttWrapper("Writer", MQTT_BROKERIP, MQTT_CLIENTID_WRITER, MQTT_USERNAME, MQTT_PASSWORD)),
-                                  _servo(ServoMotor(SERVO_PIN))
+GateController::GateController() :
+  _mqtt_reader(MqttWrapper("Reader", MQTT_BROKERIP, MQTT_CLIENTID_READER, MQTT_USERNAME, MQTT_PASSWORD)),
+  _mqtt_writer(MqttWrapper("Writer", MQTT_BROKERIP, MQTT_CLIENTID_WRITER, MQTT_USERNAME, MQTT_PASSWORD)),
+  _servo(ServoMotor(SERVO_PIN))
 {
   //
 }
@@ -43,6 +44,7 @@ void GateController::loop()
   _wifi_manager.ensure_wifi_is_connected();
 
   _mqtt_reader.reconnect().listen();
+  _mqtt_writer.reconnect().listen();
 
   this->fsm_loop();
   //this->send_mqtt_data();
@@ -50,8 +52,6 @@ void GateController::loop()
 
 void GateController::fsm_loop()
 {
-  static ulong last_execution = 0;
-
   switch (_current_state) {
     case WAIT_CONFIGURATION:
       if (_has_requested_configuration) {
@@ -67,9 +67,8 @@ void GateController::fsm_loop()
 
         _mqtt_writer.connect().publish(MQTT_TOPIC_GLOBAL_CONFIG, payload, false, 2);
         _has_requested_configuration = true;
-
-        break;
       }
+      break;
 
     case CLOSE:
       _opened = false;
@@ -84,15 +83,17 @@ void GateController::fsm_loop()
         _start_open = millis();
       } else if (millis() - _start_open >= _open_time) {
         _current_state = CLOSE;
-        _servo.move(0);
-        _opened = false;
+
+        StaticJsonDocument<JSON_OBJECT_SIZE(2)> doc;
+        doc["status"] = 0;
+
+        String payload;
+        serializeJson(doc, payload);
+
+        _mqtt_writer.connect().publish(_topic_status, payload);
       }
-
       break;
-
-    }
-
-  last_execution = millis();
+  }
 }
 
 void GateController::onMessageReceived(const String &topic, const String &payload)
@@ -113,13 +114,10 @@ void GateController::onMessageReceived(const String &topic, const String &payloa
 
   if (topic == MQTT_TOPIC_DEVICE_CONFIG) {
     _topic_commands = doc["topicToSubscribe"].as<String>();
+    _topic_status = doc["topicToPublish"].as<String>();
     _open_time = doc["openTime"].as<uint>();
 
     _mqtt_reader.subscribe(_topic_commands);
-
-    // if (doc.containsKey("mqttPushCooldown")) {
-    //     _mqtt_push_cooldown = doc["mqttPushCooldown"];
-    // }
 
     Serial.println(F("[CONTROLLER] Received configuration:"));
     Serial.print(F(" > Commands topic: "));

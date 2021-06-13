@@ -23,13 +23,13 @@ private:
   ServoMotor _servo;
 
   // State
-  enum State
-  { WAIT_CONFIGURATION, OPEN, CLOSE };
+  enum State { WAIT_CONFIGURATION, OPEN, CLOSE };
   State _current_state = WAIT_CONFIGURATION;
 
   // Dynamic configuration
   bool _has_requested_configuration = false;
   String _topic_commands;
+  String _topic_status;
   uint _open_time = DEFAULT_OPEN_TIME;
   uint _start_open;
   bool _opened = false;
