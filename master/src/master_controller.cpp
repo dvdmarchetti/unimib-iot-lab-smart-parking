@@ -53,9 +53,125 @@ void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *cli
     _ws_clients_id.insert(client->id());
 
     client->text(buildJsonCarParkState());
-    } else if (type == WS_EVT_DISCONNECT) {
+  } else if (type == WS_EVT_DISCONNECT) {
     Serial.println("Client disconnected");
     _ws_clients_id.erase(client->id());
+  }
+
+  DynamicJsonDocument json(1024);
+  handleWebSocketMessage(arg, data, len, json);
+
+  String eventType = json["event"];
+
+  if (eventType == WS_SERVER_ALARM_UPDATE) {
+    StaticJsonDocument<512> config;
+    this->getConfiguration(config, DEVICE_INTRUSION_TYPE);
+    uint command = json["command"].as<uint>();
+
+    StaticJsonDocument<256> doc;
+    doc["command"] = command;
+
+    String payload;
+    serializeJson(doc, payload);
+
+    auto it_alarm = _alarm_status.begin();
+    while (it_alarm != _alarm_status.end()) {
+      it_alarm->second = command;
+      // Push command to each device through MQTT
+
+      String deviceTopic = config["topicToSubscribe"];
+      deviceTopic.replace("<mac>", it_alarm->first);
+      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+
+      it_alarm++;
+    }
+  } else if (eventType == WS_SERVER_GATE_OPEN) {
+    StaticJsonDocument<512> config;
+    this->getConfiguration(config, DEVICE_GATE_TYPE);
+
+    StaticJsonDocument<256> doc;
+    doc["command"] = 1;
+
+    String payload;
+    serializeJson(doc, payload);
+
+    auto it_gate = _gate_status.begin();
+    while (it_gate != _gate_status.end()) {
+      it_gate->second = 1;
+      // Push command to each device through MQTT
+
+      String deviceTopic = config["topicToSubscribe"];
+      deviceTopic.replace("<mac>", it_gate->first);
+      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+
+      it_gate++;
+    }
+  } else if (eventType == WS_SERVER_LIGHT_UPDATE) {
+    StaticJsonDocument<512> config;
+    this->getConfiguration(config, DEVICE_LIGHT_TYPE);
+    uint command = json["command"].as<uint>();
+
+    StaticJsonDocument<256> doc;
+    doc["command"] = command;
+
+    String payload;
+    serializeJson(doc, payload);
+
+    auto it_light = _light_status.begin();
+    while (it_light != _light_status.end()) {
+      it_light->second = command;
+      // Push command to each device through MQTT
+
+      String deviceTopic = config["topicToSubscribe"];
+      deviceTopic.replace("<mac>", it_light->first);
+      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+
+      it_light++;
+    }
+  } else if (eventType == WS_SERVER_ROOF_UPDATE) {
+    StaticJsonDocument<512> config;
+    this->getConfiguration(config, DEVICE_ROOF_TYPE);
+    uint command = json["command"].as<uint>();
+
+    StaticJsonDocument<256> doc;
+    doc["command"] = command;
+
+    String payload;
+    serializeJson(doc, payload);
+
+    auto it_roof = _roof_status.begin();
+    while (it_roof != _roof_status.end()) {
+      it_roof->second = command;
+
+      // Push command to each device through MQTT
+      String deviceTopic = config["topicToSubscribe"];
+      deviceTopic.replace("<mac>", it_roof->first);
+      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+
+      it_roof++;
+    }
+  } else if (eventType == WS_SERVER_CARPARK_UPDATE) {
+    StaticJsonDocument<512> config;
+    this->getConfiguration(config, DEVICE_CAR_PARK_TYPE);
+    uint command = json["command"].as<uint>();
+
+    StaticJsonDocument<256> doc;
+    doc["command"] = command;
+
+    String payload;
+    serializeJson(doc, payload);
+
+    auto it_car_park = _car_park_status.begin();
+    while (it_car_park != _car_park_status.end()) {
+      it_car_park->second = command;
+
+      // Push command to each device through MQTT
+      String deviceTopic = config["topicToSubscribe"];
+      deviceTopic.replace("<mac>", it_car_park->first);
+      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+
+      it_car_park++;
+    }
   }
 }
 
@@ -237,7 +353,7 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 			String message = String(NOTIFICATION_INTRUSION_MESSAGE);
 			_telegram_manager.sendNotification(_id_to_notify, message, "");
 
-      // Notify ws clients of car park status changed
+      // Notify ws clients of intrusion state changed
       StaticJsonDocument<256> doc;
       doc["event"] = WS_INTRUSION_UPDATE;
       doc["mac"] = mac_address;
@@ -666,7 +782,7 @@ String MasterController::buildJsonCarParkState()
 
     slot["mac_address"] = status_it->first;
     slot["busy"] = busy_it->second;
-    slot["status"] = status_it->second;
+    slot["status"] = status_it->second == "on" ? 1 : 0;
 
     busy_it++;
     status_it++;
@@ -682,5 +798,18 @@ void MasterController::sendWsUpdate(String payload)
 {
   for (auto id : _ws_clients_id) {
     _ws.text((uint32_t)id, payload.c_str());
+  }
+}
+
+void MasterController::handleWebSocketMessage(void *arg, uint8_t *data, size_t len, DynamicJsonDocument &json)
+{
+  AwsFrameInfo *info = (AwsFrameInfo *)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+    DeserializationError err = deserializeJson(json, data);
+    if (err) {
+      Serial.print(F("deserializeJson() failed with code "));
+      Serial.println(err.c_str());
+      return;
+    }
   }
 }
