@@ -636,9 +636,9 @@ String MasterController::buildJsonCarParkState()
   std::vector<std::vector<String>> rows;
   MySqlWrapper::getInstance().getCards(columns, rows);
 
-  JsonArray cards = doc.createNestedArray("cards");
+  JsonObject cards = doc.createNestedObject("cards");
   for (auto row : rows) {
-    JsonObject card = cards.createNestedObject();
+    JsonObject card = cards.createNestedObject(row[0]);
     card["card_id"] = row[0];
     card["is_master"] = (bool)row[1].toInt();
     card["registered_at"] = row[2];
@@ -657,12 +657,12 @@ String MasterController::buildJsonCarParkState()
   }
 
   // 6. Car-park slots
-  JsonArray parking_slots_availability = doc.createNestedArray("slots");
+  JsonObject parking_slots_availability = doc.createNestedObject("slots");
 
   auto busy_it = _car_park_busy.begin();
   auto status_it = _car_park_status.begin();
   while (busy_it != _car_park_busy.end() && status_it != _car_park_status.end()) {
-    JsonObject slot = parking_slots_availability.createNestedObject();
+    JsonObject slot = parking_slots_availability.createNestedObject(status_it->first);
 
     slot["mac_address"] = status_it->first;
     slot["busy"] = busy_it->second;
