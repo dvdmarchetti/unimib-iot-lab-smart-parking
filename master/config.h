@@ -48,6 +48,13 @@
 #define WS_ROOF_UPDATE "roof:update"
 #define WS_GATE_UPDATE "gate:update"
 
+// Websocket Events (sent from client)
+#define WS_SERVER_LIGHT_UPDATE "light:update"
+#define WS_SERVER_ALARM_UPDATE "alarm:update"
+#define WS_SERVER_ROOF_UPDATE "roof:update"
+#define WS_SERVER_GATE_OPEN "gate:open"
+#define WS_SERVER_CARPARK_UPDATE "carpark:update"
+
 // Telegram
 #define BOT_MTBS 1000 // mean time between scan messages
 #define ALARM_ON_COMMAND "/alarm_on"

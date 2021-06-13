@@ -92,6 +92,7 @@ private:
   void sendCommandToRoof(int command);
   void sendWsUpdate(String payload);
   String buildJsonCarParkState();
+  void handleWebSocketMessage(void *arg, uint8_t *data, size_t len, DynamicJsonDocument &json);
 };
 
 #endif // MASTER_CONTROLLER_HPP_
