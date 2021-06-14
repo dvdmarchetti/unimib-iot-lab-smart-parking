@@ -449,7 +449,7 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 
             // Notify ws clients of registered card
             StaticJsonDocument<256> doc;
-            doc["event"] = WS_CARD_REMOVED;
+            doc["event"] = WS_CARD_AUTHORIZED;
             doc["mac"] = mac_address;
             doc["card"] = card;
             String payload;
