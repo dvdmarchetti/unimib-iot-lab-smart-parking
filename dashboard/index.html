@@ -36,7 +36,7 @@
         <status-card :status="light" title="Lights" tint="yellow" icon="lightbulb-alt" @click="lightsToggle"></status-card>
         <status-card :status="alarm" title="Alarm" tint="blue" icon="bell-school" @click="alarmToggle"></status-card>
         <status-card :status="gate" title="Gate" tint="purple" icon="signin" :labels="['CLOSED', 'OPEN']" @click="gateToggle"></status-card>
-        <status-card :status="roof" title="Roof" tint="green" icon="cloud-showers-heavy" :labels="['CLOSED', 'OPEN']" @click="roofToggle"></status-card>
+        <status-card :status="roof" title="Roof" tint="green" icon="sun" :labels="['CLOSED', 'OPEN']" @click="roofToggle"></status-card>
       </div>
     </div>
 
@@ -138,7 +138,7 @@
   </div>
 
   <template id="status-card">
-    <div class="flex-1 flex flex-row items-center bg-white shadow-sm rounded p-3 h-full cursor-pointer" :class="{'cursor-not-allowed': status == null}" @click="$emit('click')">
+    <div class="flex-1 flex flex-row items-center bg-white shadow-sm rounded p-3 h-full cursor-pointer" :class="{'opacity-50': status == null, 'cursor-not-allowed': status == null}" @click="$emit('click')">
       <div class="flex items-center justify-center flex-shrink-0 h-12 w-12 rounded bg-gray-100 text-gray-300 transition" :class="{ [`bg-${tint}-100`]: status > 0, [`text-${tint}-500`]: status > 0 }">
         <i class="uil text-2xl" :class="{ [`uil-${icon}`]: true }"></i>
       </div>
@@ -177,7 +177,7 @@ Vue.component('status-card', {
   }
 })
 
-Vue.use(vueMoment);
+Vue.use(vueMoment)
 const app = new Vue({
   el: '#app',
   data: {
@@ -206,7 +206,7 @@ const app = new Vue({
     handleMessage(event) {
       payload = JSON.parse(event.data)
       fn = 'handle' + payload.event.split(':').map(s => s[0].toUpperCase()+s.slice(1)).join('')
-      this[fn](payload);
+      this[fn](payload)
     },
 
     handleWsBoot(payload) {
@@ -253,9 +253,12 @@ const app = new Vue({
           busy: false,
         })
       } else if (payload.type == 'light') {
-        this.light = 2;
+        this.light = 2
+      } else if (payload.type == 'intrusion') {
+        this.alarm = 0
+        this.intrusion = 0
       } else {
-        this.$set(this, payload.type, 0);
+        this.$set(this, payload.type, 0)
       }
     },
 
@@ -274,7 +277,11 @@ const app = new Vue({
       if (payload.type == 'car-park') {
         this.$delete(this.slots, payload.mac)
       } else {
-        this.$set(this, payload.type, null);
+        if (payload.type == 'intrusion') {
+          this.alarm = null;
+        }
+
+        this.$set(this, payload.type, null)
       }
     },
 
@@ -287,7 +294,7 @@ const app = new Vue({
         card_id: payload.card,
         is_master: payload.is_master,
         registered_at: date.toISOString(),
-      });
+      })
     },
 
     handleCardRemoved(payload) {
@@ -297,28 +304,31 @@ const app = new Vue({
 
     handleCarparkUpdate(payload) {
       console.log('Update Carpark', payload)
-      this.$set(this.slots[payload.mac], 'status', payload.status);
-      this.$set(this.slots[payload.mac], 'busy', payload.busy);
+      this.$set(this.slots[payload.mac], 'status', payload.status)
+      this.$set(this.slots[payload.mac], 'busy', payload.busy)
     },
 
     handleAlarmUpdate(payload) {
       console.log('Update Alarm', payload)
-      this.alarm = payload.status;
+      this.alarm = payload.status
+      if (payload.status === 0) {
+        this.intrusion = 0
+      }
     },
 
     handleIntrusionUpdate(payload) {
       console.log('Update Intrusion', payload)
-      this.intrusion = payload.status;
+      this.intrusion = payload.status
     },
 
     handleRoofUpdate(payload) {
       console.log('Update Roof', payload)
-      this.roof = payload.status;
+      this.roof = payload.status
     },
 
     handleGateUpdate(payload) {
       console.log('Update Gate', payload)
-      this.gate = payload.status;
+      this.gate = payload.status
     },
 
     notify(event, payload) {
@@ -332,9 +342,9 @@ const app = new Vue({
     },
 
     lightsToggle() {
-      const command = (this.lights+1) % 3
+      const command = (this.light+1) % 3
       this.notify(Events.WS_SERVER_LIGHT_UPDATE, { command: command })
-      this.lights = command
+      this.light = command
     },
 
     alarmToggle() {
@@ -356,13 +366,13 @@ const app = new Vue({
     gateToggle() {
       const command = (this.gate+1) % 2
       this.notify(Events.WS_SERVER_GATE_OPEN, { command: command })
-      this.$set(this, 'gate', 1);
+      this.$set(this, 'gate', 1)
     }
   },
 
   computed: {
     isConnected() {
-      return this.ws.readyState == 2;
+      return this.ws.readyState == 2
     }
   }
 })
