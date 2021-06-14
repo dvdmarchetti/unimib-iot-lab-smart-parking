@@ -28,8 +28,10 @@ private:
     Led _led_info;
 
     // State
-    enum State { WAIT_CONFIGURATION, INTRUSION, ARMED, OFF };
+    enum State { WAIT_CONFIGURATION, INTRUSION, ARMING, ARMED, OFF };
     State _current_state = WAIT_CONFIGURATION;
+    bool _arming = false;
+    unsigned long _arming_time;
 
     // Dynamic configuration
     bool _has_requested_configuration = false;

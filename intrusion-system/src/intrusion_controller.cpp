@@ -33,10 +33,11 @@ void IntrusionController::setup_mqtt()
     String payload;
     this->device_payload(payload);
 
-    _mqtt_writer.begin().connect();
+    _mqtt_writer.begin()
+        .setLastWill(MQTT_TOPIC_DEVICE_LAST_WILL, payload)
+        .connect();
 
     _mqtt_reader.begin()
-        .setLastWill(MQTT_TOPIC_DEVICE_LAST_WILL, payload)
         .onMessageReceived(this, &MqttReceiver::onMessageReceived)
         .connect()
         .subscribe(MQTT_TOPIC_DEVICE_CONFIG, 2);
@@ -69,7 +70,7 @@ bool IntrusionController::is_enabled()
 
 void IntrusionController::read_sensors()
 {
-    if (_current_state == OFF || _current_state == WAIT_CONFIGURATION) {
+    if (_current_state == OFF || _current_state == WAIT_CONFIGURATION || _current_state == ARMING) {
         return;
     }
 
@@ -107,6 +108,22 @@ void IntrusionController::fsm_loop()
         Serial.println(F("[CONTROLLER] State: OFF"));
         _buzzer.soundOff();
         _led_info.switchOff();
+        break;
+
+    case ARMING:
+        Serial.println(F("[CONTROLLER] State: ARMING"));
+        if (millis() - last_blink > BLINK_INTERVAL) {
+            if (info_led_on) _led_info.switchOff();
+            else  _led_info.switchOn();
+            info_led_on = !info_led_on;
+            last_blink = millis();
+        }
+
+        if (_arming && millis() - _arming_time >= PIR_SETUP_PERIOD / 2) {
+            _arming = false;
+            _current_state = ARMED;
+            Serial.println(F("[CONTROLLER] Alarm armed..."));
+        }
         break;
 
     case ARMED:
@@ -198,9 +215,10 @@ void IntrusionController::onMessageReceived(const String &topic, const String &p
             _current_state = OFF;
         } else if (status == 1) {
             Serial.println(F("[CONTROLLER] Alarm arming..."));
-            delay(PIR_SETUP_PERIOD / 2);
-            _current_state = ARMED;
-            Serial.println(F("[CONTROLLER] Alarm armed..."));
+            //delay(PIR_SETUP_PERIOD / 2);
+            _current_state = ARMING;
+            _arming = true;
+            _arming_time = millis();
         } else {
             Serial.println(F("[CONTROLLER] Payload not recognized. Message skipped."));
         }

@@ -19,7 +19,7 @@
 #define JSON_KEY_CAR_PARK_ON_OFF "status"
 
 // Mqtt
-#define DEVICE_MAC_ADDRESS "40:f5:20:05:63:1e"
+#define DEVICE_MAC_ADDRESS "40:F5:20:05:63:1E"
 #define DEVICE_TYPE "intrusion"
 
 #define MQTT_CLIENTID_WRITER DEVICE_MAC_ADDRESS "_writer"
