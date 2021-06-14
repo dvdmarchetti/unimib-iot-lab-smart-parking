@@ -182,7 +182,7 @@ void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *cli
       auto it_car_park = _car_park_status.begin();
       while (it_car_park != _car_park_status.end()) {
         if (it_car_park->first == mac) {
-          it_car_park->second = command;
+          it_car_park->second = command == 0 ? "off" : "on";
 
           // Push command to each device through MQTT
           String deviceTopic = config["topicToSubscribe"];
@@ -522,10 +522,12 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
     sendWsUpdate(payload);
 
     // Update status for this specific device
+    MySqlWrapper::getInstance().setAutoclose(false);
     MySqlWrapper::getInstance().updateDevice(mac_address, 0);
 
     char event[128];
     sprintf(event, DEVICE_DISCONNECTED_EVENT, mac_address.c_str(), type.c_str());
+    MySqlWrapper::getInstance().setAutoclose(true);
     MySqlWrapper::getInstance().insertEvent(DEVICE_EVENT_CATEGORY, String(event), mac_address);
   }
 }

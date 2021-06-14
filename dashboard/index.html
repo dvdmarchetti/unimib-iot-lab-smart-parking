@@ -304,7 +304,7 @@ const app = new Vue({
 
     handleCarparkUpdate(payload) {
       console.log('Update Carpark', payload)
-      this.$set(this.slots[payload.mac], 'status', payload.status)
+      this.$set(this.slots[payload.mac], 'status', payload.status ?? payload.command)
       this.$set(this.slots[payload.mac], 'busy', payload.busy)
     },
 
