@@ -415,6 +415,9 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
           doc["event"] = WS_GATE_UPDATE;
           doc["mac"] = mac_address;
           doc["status"] = 1;
+          String payload;
+          serializeJson(doc, payload);
+          sendWsUpdate(payload);
         } else {
           _telegram_manager.sendNotification(_id_to_notify, NOTIFICATION_INVALID_CARD, "");
 
