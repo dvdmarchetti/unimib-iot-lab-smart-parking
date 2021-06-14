@@ -389,12 +389,11 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       payload["authorized"] = is_authorized;
 
       if (action == "verify") {
-        if (is_authorized) {
+        if (is_authorized && !is_master) {
           StaticJsonDocument<512> config;
           this->getConfiguration(config, DEVICE_GATE_TYPE);
 
           auto it_gate = _gate_status.begin();
-
           while (it_gate != _gate_status.end()) {
             _gate_status[it_gate->first] = 1;
             String subscribed_topic = config["topicToSubscribe"];
