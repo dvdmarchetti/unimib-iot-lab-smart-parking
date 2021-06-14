@@ -213,11 +213,11 @@ void CarParkController::onMessageReceived(const String &topic, const String &pay
     _busy->switchOff();
     _free->switchOff();
   } else if (topic == _topic_commands) {
-    const String status = doc["command"].as<String>();
+    const uint status = doc["command"].as<uint>();
 
-    if (status == "on") {
+    if (status == 1) {
       _current_state = FREE;
-    } else if (status == "off") {
+    } else if (status == 0) {
       _current_state = OFF;
     }  else {
       Serial.println(F("[CONTROLLER] Payload not recognized. Message skipped."));
