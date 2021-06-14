@@ -8,7 +8,7 @@
 #define JSON_KEY_DEVICE_TYPE "type"
 
 // Mqtt
-#define DEVICE_MAC_ADDRESS "BA:E6:2D:28:EE:66"
+#define DEVICE_MAC_ADDRESS "40:F5:20:05:5B:A3"
 #define DEVICE_TYPE "rfid"
 
 #define MQTT_CLIENTID_WRITER DEVICE_MAC_ADDRESS "_writer"
