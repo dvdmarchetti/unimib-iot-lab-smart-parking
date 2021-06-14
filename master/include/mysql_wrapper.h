@@ -11,7 +11,7 @@
 #include "../secrets.h"
 
 #define QUERY_LEN 256
-#define QUERY_SELECT_CARDS "SELECT * FROM `mvincenzi14`.`cards`"
+#define QUERY_SELECT_CARDS "SELECT * FROM `mvincenzi14`.`cards` ORDER BY is_master DESC"
 #define QUERY_VALIDATE_CARD "SELECT * FROM `mvincenzi14`.`cards` WHERE card_id='%s' LIMIT 1"
 #define QUERY_AUTHORIZE_CARD "INSERT INTO `mvincenzi14`.`cards` (`card_id`) VALUES ('%s')"
 #define QUERY_REVOKE_CARD "DELETE FROM `mvincenzi14`.`cards` WHERE card_id='%s'"
