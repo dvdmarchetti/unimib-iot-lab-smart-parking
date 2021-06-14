@@ -391,7 +391,7 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       payload["authorized"] = is_authorized;
 
       if (action == "verify") {
-        if (is_authorized && !is_master) {
+        if (is_authorized) {
           StaticJsonDocument<512> config;
           this->getConfiguration(config, DEVICE_GATE_TYPE);
 
@@ -419,7 +419,7 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
           String payload;
           serializeJson(doc, payload);
           sendWsUpdate(payload);
-        } else {
+        } else if (!is_master) {
           _telegram_manager.sendNotification(_id_to_notify, NOTIFICATION_INVALID_CARD, "");
 
           char event[128];
@@ -624,7 +624,7 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
 
     // 2. Lights status
     for (auto light : _light_status) {
-      String status = light.second == 1 ? "on" : "off";
+      String status = light.second == 1 ? "on" : light.second == 2 ? "auto" : "off";
       response += " > Light " + light.first + ": " + status + "\n";
     }
 
