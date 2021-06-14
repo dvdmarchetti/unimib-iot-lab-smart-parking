@@ -26,17 +26,17 @@
       </div>
     </div>
 
-    <div class="container mx-auto my-2 max-w-screen-lg px-8 my-4" v-if="status.intrusion">
+    <div class="container mx-auto my-2 max-w-screen-lg px-8 my-4" v-if="intrusion">
       <div class="bg-red-200 text-red-600 my-2 px-6 py-4 rounded text-lg"><span class="uil uil-exclamation-octagon"></span> <span class="font-semibold">Intrusion detected</span></div>
     </div>
 
     <div class="container mx-auto my-2 max-w-screen-lg px-8 my-4">
       <h2 class="ml-3 mb-1 text-2xl font-semibold flex items-center">Controls</h2>
       <div class="flex gap-2">
-        <status-card :has-component="'lights' in status" :status="status.lights" title="Lights" tint="yellow" icon="lightbulb-alt" @click="lightsToggle"></status-card>
-        <status-card :has-component="'alarm' in status" :status="status.alarm" title="Alarm" tint="blue" icon="bell-school" @click="alarmToggle"></status-card>
-        <status-card :has-component="'gate' in status" :status="status.gate" title="Gate" tint="purple" icon="signin" :labels="['CLOSED', 'OPEN']" @click="gateToggle"></status-card>
-        <status-card :has-component="'roof' in status" :status="status.roof" title="Roof" tint="green" icon="cloud-showers-heavy" :labels="['OPEN', 'CLOSED']" @click="roofToggle"></status-card>
+        <status-card :status="light" title="Lights" tint="yellow" icon="lightbulb-alt" @click="lightsToggle"></status-card>
+        <status-card :status="alarm" title="Alarm" tint="blue" icon="bell-school" @click="alarmToggle"></status-card>
+        <status-card :status="gate" title="Gate" tint="purple" icon="signin" :labels="['CLOSED', 'OPEN']" @click="gateToggle"></status-card>
+        <status-card :status="roof" title="Roof" tint="green" icon="cloud-showers-heavy" :labels="['CLOSED', 'OPEN']" @click="roofToggle"></status-card>
       </div>
     </div>
 
@@ -138,16 +138,16 @@
   </div>
 
   <template id="status-card">
-    <div class="flex-1 flex flex-row items-center bg-white shadow-sm rounded p-3 h-full cursor-pointer" :class="{'cursor-not-allowed': !hasComponent}" @click="$emit('click')">
+    <div class="flex-1 flex flex-row items-center bg-white shadow-sm rounded p-3 h-full cursor-pointer" :class="{'cursor-not-allowed': status == null}" @click="$emit('click')">
       <div class="flex items-center justify-center flex-shrink-0 h-12 w-12 rounded bg-gray-100 text-gray-300 transition" :class="{ [`bg-${tint}-100`]: status > 0, [`text-${tint}-500`]: status > 0 }">
         <i class="uil text-2xl" :class="{ [`uil-${icon}`]: true }"></i>
       </div>
       <div class="flex flex-col flex-grow ml-3 justify-center">
         <div class="text-sm text-gray-600 font-bold nunito">{{ title }}</div>
         <div class="font-semibold uppercase text-gray-400 transition" :class="{ [`text-${tint}-600`]: status > 0 }">
-          <span v-if="!hasComponent">OFFLINE</span>
-          <span v-else-if="status >= 0 && status < _labels.length">{{ _labels[status] }}</span>
-          <span v-else>UNKNOWN</span>
+          <span v-if="status == null">OFFLINE</span>
+          <span v-else>{{ _labels[status] }}</span>
+          <!-- <span v-else>UNKNOWN</span> -->
         </div>
       </div>
     </div>
@@ -168,7 +168,7 @@ const Events = Object.freeze({
 // const ENDPOINT = '';
 Vue.component('status-card', {
   template: '#status-card',
-  props: ['hasComponent', 'status', 'title', 'tint', 'icon', 'labels'],
+  props: ['status', 'title', 'tint', 'icon', 'labels'],
 
   computed: {
     _labels() {
@@ -182,22 +182,21 @@ const app = new Vue({
   el: '#app',
   data: {
     ws: null,
-    status: {
-      lights: 1,
-      alarm: 1,
-      intrusion: 1,
-      roof: 1,
-      gate: 1
-    },
-    devices: {
-    },
+
+    light: null,
+    alarm: null,
+    intrusion: null,
+    gate: null,
+    roof: null,
+
+    devices: {},
     cards: {},
     slots: {},
   },
 
   mounted () {
-    // this.ws = new WebSocket('ws://192.168.1.148/ws')
-    this.ws = new WebSocket('ws://localhost:6789')
+    this.ws = new WebSocket('ws://192.168.1.148/ws')
+    // this.ws = new WebSocket('ws://localhost:6789')
     this.ws.onopen = () => console.log('Connected')
     this.ws.onerror = (error) => console.err('Error: ' + error)
     this.ws.onmessage = this.handleMessage
@@ -211,11 +210,27 @@ const app = new Vue({
     },
 
     handleWsBoot(payload) {
-      console.logUpdate('Boot', payload)
-      this.status.alarm = payload.alarm;
-      this.status.intrusion = payload.intrusion;
-      this.status.gate = payload.gate;
-      this.status.roof = payload.roof;
+      console.log('Boot', payload)
+      // ['light', 'alarm', 'intrusion', 'gate', 'roof'].map(d => {
+      //   if (d in payload) {
+      //     this.$set(this, d, payload[d])
+      //   }
+      // })
+      if ('light' in payload) {
+        this.$set(this, 'light', payload.light)
+      }
+      if ('alarm' in payload) {
+        this.$set(this, 'alarm', payload.alarm)
+      }
+      if ('intrusion' in payload) {
+        this.$set(this, 'intrusion', payload.intrusion)
+      }
+      if ('gate' in payload) {
+        this.$set(this, 'gate', payload.gate)
+      }
+      if ('roof' in payload) {
+        this.$set(this, 'roof', payload.roof)
+      }
 
       this.cards = payload.cards;
       this.devices = payload.devices;
@@ -224,69 +239,86 @@ const app = new Vue({
 
     handleDeviceConnected(payload) {
       console.log('Device connected', payload)
-      this.$set(this.devices, payload.device_id, {
-        device_id: payload.device_id,
+      this.$set(this.devices, payload.mac, {
+        device_id: payload.mac,
         type: payload.type,
-        last_seen: payload.last_seen,
-        online: payload.online,
+        online: true,
+        last_seen: new Date().toISOString(),
       })
 
       if (payload.type == 'car-park') {
-        this.$set(this.slots, payload.device_id = {
-          mac_address: payload.device_id,
+        this.$set(this.slots, payload.mac, {
+          mac_address: payload.mac,
           status: 1,
           busy: false,
         })
+      } else if (payload.type == 'light') {
+        this.light = 2;
+      } else {
+        this.$set(this, payload.type, 0);
       }
     },
 
     handleDeviceDead(payload) {
       console.log('Device dead', payload)
-      this.$delete(this.devices, payload.device_id)
+      date = new Date()
+      date.setHours(date.getHours() - 2)
+
+      this.$set(this.devices, payload.mac, {
+        device_id: payload.mac,
+        type: payload.type,
+        online: false,
+        last_seen: date.toISOString(),
+      })
 
       if (payload.type == 'car-park') {
-        this.$delete(this.slots, payload.device_id)
+        this.$delete(this.slots, payload.mac)
+      } else {
+        this.$set(this, payload.type, null);
       }
     },
 
     handleCardAuthorized(payload) {
       console.log('Card authorized', payload)
-      this.$set(this.cards, payload.card_id, {
-        card_id: payload.card_id,
+      date = new Date()
+      date.setHours(date.getHours() - 2)
+
+      this.$set(this.cards, payload.card, {
+        card_id: payload.card,
         is_master: payload.is_master,
-        registered_at: payload.registered_at,
+        registered_at: date.toISOString(),
       });
     },
 
     handleCardRemoved(payload) {
       console.log('Card removed', payload)
-      this.$delete(this.cards, payload.card_id)
+      this.$delete(this.cards, payload.card)
     },
 
     handleCarparkUpdate(payload) {
       console.log('Update Carpark', payload)
-      this.$set(this.slots[payload.mac_address], 'status', payload.status);
-      this.$set(this.slots[payload.mac_address], 'busy', payload.busy);
+      this.$set(this.slots[payload.mac], 'status', payload.status);
+      this.$set(this.slots[payload.mac], 'busy', payload.busy);
     },
 
     handleAlarmUpdate(payload) {
       console.log('Update Alarm', payload)
-      this.status.alarm = payload.status;
+      this.alarm = payload.status;
     },
 
     handleIntrusionUpdate(payload) {
       console.log('Update Intrusion', payload)
-      this.status.intrusion = payload.status;
+      this.intrusion = payload.status;
     },
 
     handleRoofUpdate(payload) {
       console.log('Update Roof', payload)
-      this.status.roof = payload.status === 0;
+      this.roof = payload.status;
     },
 
     handleGateUpdate(payload) {
       console.log('Update Gate', payload)
-      this.status.gate = payload.status;
+      this.gate = payload.status;
     },
 
     notify(event, payload) {
@@ -300,31 +332,31 @@ const app = new Vue({
     },
 
     lightsToggle() {
-      const command = (this.status.lights+1) % 3
+      const command = (this.lights+1) % 3
       this.notify(Events.WS_SERVER_LIGHT_UPDATE, { command: command })
-      this.status.lights = command
+      this.lights = command
     },
 
     alarmToggle() {
-      const command = (this.status.alarm+1) % 2
+      const command = (this.alarm+1) % 2
       this.notify(Events.WS_SERVER_ALARM_UPDATE, { command: command })
-      this.status.alarm = command
+      this.alarm = command
 
       if (command == 0) {
-        this.status.intrusion = 0
+        this.intrusion = 0
       }
     },
 
     roofToggle() {
-      const command = (this.status.roof+1) % 2
+      const command = (this.roof+1) % 2
       this.notify(Events.WS_SERVER_ROOF_UPDATE, { command: command })
-      this.status.roof = command
+      this.roof = command
     },
 
     gateToggle() {
-      const command = (this.status.gate+1) % 2
+      const command = (this.gate+1) % 2
       this.notify(Events.WS_SERVER_GATE_OPEN, { command: command })
-      this.status.gate = command
+      this.$set(this, 'gate', 1);
     }
   },
 
