@@ -41,7 +41,8 @@ void MasterController::setup_mqtt() {
   _mqtt_reader.begin()
     .onMessageReceived(this, &MqttReceiver::onMessageReceived)
     .connect()
-    .subscribe(MQTT_TOPIC_GLOBAL_CONFIG, 2);
+    .subscribe(MQTT_TOPIC_GLOBAL_CONFIG, 2)
+    .subscribe(MQTT_LAST_WILL_TOPIC, 2);
 
   _mqtt_writer.begin().connect();
 }
@@ -76,15 +77,19 @@ void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *cli
       auto it_alarm = _alarm_status.begin();
       while (it_alarm != _alarm_status.end()) {
         it_alarm->second = command;
-        // Push command to each device through MQTT
 
+        if (command == 0) {
+          _intrusion_detected[it_alarm->first] = command;
+        }
+
+        // Push command to each device through MQTT
         String deviceTopic = config["topicToSubscribe"];
         deviceTopic.replace("<mac>", it_alarm->first);
         _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
 
         char event[128];
         String cmd = command == 1 ? "ON" : "OFF";
-        sprintf(event, DASHBOARD_COMMAND_EVENT, "ALARM", command);
+        sprintf(event, DASHBOARD_COMMAND_EVENT, "ALARM", cmd.c_str());
         MySqlWrapper::getInstance().insertEvent(DASHBOARD_EVENT_CATEGORY, String(event), it_alarm->first);
 
         it_alarm++;
@@ -275,9 +280,6 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       _mqtt_reader.enqueueSubscribeMessage(config["topicToPublish"].as<String>(), 0);
     }
 
-    // Subscribe to last will topic
-    _mqtt_reader.enqueueSubscribeMessage(MQTT_LAST_WILL_PREFIX + mac_address, 2);
-
     // Publish config file in configuration topic for this device
     String clientTopicForConfig = MQTT_TOPIC_DEVICE_CONFIG + mac_address;
     String buffer;
@@ -355,9 +357,6 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       _alarm_status[mac_address] = status == "on" ? 1 : 0;
       _intrusion_detected[mac_address] = doc["intrusion"].as<uint>();
 
-			String message = String(NOTIFICATION_INTRUSION_MESSAGE);
-			_telegram_manager.sendNotification(_id_to_notify, message, "");
-
       // Notify ws clients of intrusion state changed
       StaticJsonDocument<256> doc;
       doc["event"] = WS_INTRUSION_UPDATE;
@@ -370,6 +369,9 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 
       // Push intrusion event on MySQL
       MySqlWrapper::getInstance().insertEvent(DEVICE_EVENT_CATEGORY, DEVICE_INTRUSION_DETECTED, mac_address);
+
+      String message = String(NOTIFICATION_INTRUSION_MESSAGE);
+			_telegram_manager.sendNotification(_id_to_notify, message, "");
     } else if (type == DEVICE_RFID_TYPE) {
       StaticJsonDocument<512> config;
       this->getConfiguration(config, DEVICE_RFID_TYPE);
@@ -572,7 +574,8 @@ void MasterController::onTelegramMessageReceived(const String &chat_id, const St
     serializeJson(doc, payload);
 
     for (auto device : _alarm_status) {
-      _alarm_status[device.first] = 1;
+      _alarm_status[device.first] = 0;
+      _intrusion_detected[device.first] = 0;
 
       // Push command to each device through MQTT
       String deviceTopic = config["topicToSubscribe"];
