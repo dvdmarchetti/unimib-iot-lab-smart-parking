@@ -308,10 +308,15 @@ const app = new Vue({
       this.$set(this.slots[payload.mac], 'busy', payload.busy)
     },
 
+    handleLightUpdate(payload) {
+      console.log('Update Light', payload)
+      this.light = payload.command
+    },
+
     handleAlarmUpdate(payload) {
       console.log('Update Alarm', payload)
-      this.alarm = payload.status
-      if (payload.status === 0) {
+      this.alarm = payload.status ?? payload.command
+      if ((payload.status ?? payload.command) === 0) {
         this.intrusion = 0
       }
     },
@@ -323,9 +328,13 @@ const app = new Vue({
 
     handleRoofUpdate(payload) {
       console.log('Update Roof', payload)
-      this.roof = payload.status
+      this.roof = payload.status ?? payload.command
     },
 
+    handleGateOpen(payload) {
+      console.log('Open Gate', payload)
+      this.gate = payload.command
+    },
     handleGateUpdate(payload) {
       console.log('Update Gate', payload)
       this.gate = payload.status
@@ -337,7 +346,7 @@ const app = new Vue({
 
     parkingSlotToggle(mac_address) {
       const command = (this.slots[mac_address].status+1) % 2
-      this.notify(Events.WS_SERVER_CARPARK_UPDATE, { command: command })
+      this.notify(Events.WS_SERVER_CARPARK_UPDATE, { mac: mac_address, command: command })
       this.$set(this.slots[mac_address], 'status', command)
     },
 
