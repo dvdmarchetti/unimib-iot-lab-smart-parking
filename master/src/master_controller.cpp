@@ -771,7 +771,7 @@ String MasterController::buildJsonCarParkState()
     doc["gate"] = gateOpen;
   }
 
-  // 3. Gate status
+  // 3. Roof status
   if (_roof_status.size() > 0) {
     uint roofOpen = _roof_status.begin()->second;
 
@@ -817,6 +817,13 @@ String MasterController::buildJsonCarParkState()
 
     busy_it++;
     status_it++;
+  }
+
+  // 7. Light status
+  if (_light_status.size() > 0) {
+    uint status = _light_status.begin()->second;
+
+    doc["light"] = status;
   }
 
   String payload;
