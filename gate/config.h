@@ -1,4 +1,4 @@
-#define SERVO_PIN D4
+#define SERVO_PIN D3
 
 // Json payloads
 #define JSON_KEY_DEVICE_MAC "mac"

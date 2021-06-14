@@ -13,7 +13,7 @@ GateController::GateController() :
 void GateController::setup()
 {
   Serial.println(F("[CONTROLLER] Setting up entrance gate"));
-  _servo.move(0); // Return servo to init position.
+  _servo.move(5); // Return servo to init position.
 
   Serial.println(F("[CONTROLLER] Setting up Wifi"));
   _wifi_manager.begin();
@@ -33,7 +33,7 @@ void GateController::setupMqtt()
   _mqtt_writer.begin().connect();
 
   _mqtt_reader.begin()
-      .setLastWill("smpk/last-will", payload)
+      .setLastWill(MQTT_TOPIC_DEVICE_LAST_WILL, payload)
       .onMessageReceived(this, &MqttReceiver::onMessageReceived)
       .connect()
       .subscribe(MQTT_TOPIC_DEVICE_CONFIG, 2);
@@ -72,20 +72,22 @@ void GateController::fsm_loop()
 
     case CLOSE:
       _opened = false;
-      _servo.move(0);
+      // _servo.move(5);
       break;
 
     case OPEN:
-      _servo.move(180);
+      // _servo.move(90);
 
       if (!_opened) {
         _opened = true;
         _start_open = millis();
       } else if (millis() - _start_open >= _open_time) {
         _current_state = CLOSE;
+        _servo.move(5);
 
         StaticJsonDocument<JSON_OBJECT_SIZE(4)> doc;
-        doc["mac_address"] = DEVICE_MAC_ADDRESS;
+        doc["mac"] = DEVICE_MAC_ADDRESS;
+        doc["type"] = DEVICE_TYPE;
         doc["status"] = 0;
 
         String payload;
@@ -130,8 +132,10 @@ void GateController::onMessageReceived(const String &topic, const String &payloa
 
     if (status == 0) {
       _current_state = CLOSE;
+      _servo.move(5);
     } else if (status == 1) {
       _current_state = OPEN;
+      _servo.move(90);
     } else {
       Serial.println(F("[CONTROLLER] Payload not recognized. Message skipped."));
     }
