@@ -32,7 +32,8 @@
 #define INFLUX_DATA_POINT_LABEL "Smart Parking"
 
 // Push values
-#define PUSH_LIGHT_VALUES_PERIOD 300000 // 5 minutes.
+// #define PUSH_LIGHT_VALUES_PERIOD 300000 // 5 minutes.
+#define PUSH_LIGHT_VALUES_PERIOD 60000 // 5 minutes.
 
 // Websocket Events (sent to client)
 #define WS_BOOT "ws:boot"

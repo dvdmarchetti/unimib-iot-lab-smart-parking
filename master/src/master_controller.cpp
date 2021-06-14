@@ -61,6 +61,14 @@ void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *cli
     DynamicJsonDocument json(1024);
     handleWebSocketMessage(arg, data, len, json);
 
+    String replyEvent;
+    serializeJson(json, replyEvent);
+    for (auto id : _ws_clients_id) {
+      if (id != client->id()) {
+        _ws.text((uint32_t)id, replyEvent.c_str());
+      }
+    }
+
     String eventType = json["event"];
 
     if (eventType == WS_SERVER_ALARM_UPDATE) {
