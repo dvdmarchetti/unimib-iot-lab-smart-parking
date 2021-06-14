@@ -56,126 +56,126 @@ void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *cli
   } else if (type == WS_EVT_DISCONNECT) {
     Serial.println("Client disconnected");
     _ws_clients_id.erase(client->id());
-  }
+  } else if (type == WS_EVT_DATA) {
+    DynamicJsonDocument json(1024);
+    handleWebSocketMessage(arg, data, len, json);
 
-  DynamicJsonDocument json(1024);
-  handleWebSocketMessage(arg, data, len, json);
+    String eventType = json["event"];
 
-  String eventType = json["event"];
+    if (eventType == WS_SERVER_ALARM_UPDATE) {
+      StaticJsonDocument<512> config;
+      this->getConfiguration(config, DEVICE_INTRUSION_TYPE);
+      uint command = json["command"].as<uint>();
 
-  if (eventType == WS_SERVER_ALARM_UPDATE) {
-    StaticJsonDocument<512> config;
-    this->getConfiguration(config, DEVICE_INTRUSION_TYPE);
-    uint command = json["command"].as<uint>();
+      StaticJsonDocument<256> doc;
+      doc["command"] = command;
 
-    StaticJsonDocument<256> doc;
-    doc["command"] = command;
+      String payload;
+      serializeJson(doc, payload);
 
-    String payload;
-    serializeJson(doc, payload);
+      auto it_alarm = _alarm_status.begin();
+      while (it_alarm != _alarm_status.end()) {
+        it_alarm->second = command;
+        // Push command to each device through MQTT
 
-    auto it_alarm = _alarm_status.begin();
-    while (it_alarm != _alarm_status.end()) {
-      it_alarm->second = command;
-      // Push command to each device through MQTT
+        String deviceTopic = config["topicToSubscribe"];
+        deviceTopic.replace("<mac>", it_alarm->first);
+        _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
 
-      String deviceTopic = config["topicToSubscribe"];
-      deviceTopic.replace("<mac>", it_alarm->first);
-      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+        char event[128];
+        String cmd = command == 1 ? "ON" : "OFF";
+        sprintf(event, DASHBOARD_COMMAND_EVENT, "ALARM", command);
+        MySqlWrapper::getInstance().insertEvent(DASHBOARD_EVENT_CATEGORY, String(event), it_alarm->first);
 
-      char event[128];
-      String cmd = command == 1 ? "ON" : "OFF";
-      sprintf(event, DASHBOARD_COMMAND_EVENT, "ALARM", command);
-      MySqlWrapper::getInstance().insertEvent(DASHBOARD_EVENT_CATEGORY, String(event), it_alarm->first);
+        it_alarm++;
+      }
+    } else if (eventType == WS_SERVER_GATE_OPEN) {
+      StaticJsonDocument<512> config;
+      this->getConfiguration(config, DEVICE_GATE_TYPE);
 
-      it_alarm++;
-    }
-  } else if (eventType == WS_SERVER_GATE_OPEN) {
-    StaticJsonDocument<512> config;
-    this->getConfiguration(config, DEVICE_GATE_TYPE);
+      StaticJsonDocument<256> doc;
+      doc["command"] = 1;
 
-    StaticJsonDocument<256> doc;
-    doc["command"] = 1;
+      String payload;
+      serializeJson(doc, payload);
 
-    String payload;
-    serializeJson(doc, payload);
+      auto it_gate = _gate_status.begin();
+      while (it_gate != _gate_status.end()) {
+        it_gate->second = 1;
+        // Push command to each device through MQTT
 
-    auto it_gate = _gate_status.begin();
-    while (it_gate != _gate_status.end()) {
-      it_gate->second = 1;
-      // Push command to each device through MQTT
+        String deviceTopic = config["topicToSubscribe"];
+        deviceTopic.replace("<mac>", it_gate->first);
+        _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
 
-      String deviceTopic = config["topicToSubscribe"];
-      deviceTopic.replace("<mac>", it_gate->first);
-      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+        it_gate++;
+      }
+    } else if (eventType == WS_SERVER_LIGHT_UPDATE) {
+      StaticJsonDocument<512> config;
+      this->getConfiguration(config, DEVICE_LIGHT_TYPE);
+      uint command = json["command"].as<uint>();
 
-      it_gate++;
-    }
-  } else if (eventType == WS_SERVER_LIGHT_UPDATE) {
-    StaticJsonDocument<512> config;
-    this->getConfiguration(config, DEVICE_LIGHT_TYPE);
-    uint command = json["command"].as<uint>();
+      StaticJsonDocument<256> doc;
+      doc["command"] = command;
 
-    StaticJsonDocument<256> doc;
-    doc["command"] = command;
+      String payload;
+      serializeJson(doc, payload);
 
-    String payload;
-    serializeJson(doc, payload);
+      auto it_light = _light_status.begin();
+      while (it_light != _light_status.end()) {
+        it_light->second = command;
+        // Push command to each device through MQTT
 
-    auto it_light = _light_status.begin();
-    while (it_light != _light_status.end()) {
-      it_light->second = command;
-      // Push command to each device through MQTT
+        String deviceTopic = config["topicToSubscribe"];
+        deviceTopic.replace("<mac>", it_light->first);
+        _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
 
-      String deviceTopic = config["topicToSubscribe"];
-      deviceTopic.replace("<mac>", it_light->first);
-      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+        it_light++;
+      }
+    } else if (eventType == WS_SERVER_ROOF_UPDATE) {
+      StaticJsonDocument<512> config;
+      this->getConfiguration(config, DEVICE_ROOF_TYPE);
+      uint command = json["command"].as<uint>();
 
-      it_light++;
-    }
-  } else if (eventType == WS_SERVER_ROOF_UPDATE) {
-    StaticJsonDocument<512> config;
-    this->getConfiguration(config, DEVICE_ROOF_TYPE);
-    uint command = json["command"].as<uint>();
+      StaticJsonDocument<256> doc;
+      doc["command"] = command;
 
-    StaticJsonDocument<256> doc;
-    doc["command"] = command;
+      String payload;
+      serializeJson(doc, payload);
 
-    String payload;
-    serializeJson(doc, payload);
+      auto it_roof = _roof_status.begin();
+      while (it_roof != _roof_status.end()) {
+        it_roof->second = command;
 
-    auto it_roof = _roof_status.begin();
-    while (it_roof != _roof_status.end()) {
-      it_roof->second = command;
+        // Push command to each device through MQTT
+        String deviceTopic = config["topicToSubscribe"];
+        deviceTopic.replace("<mac>", it_roof->first);
+        _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
 
-      // Push command to each device through MQTT
-      String deviceTopic = config["topicToSubscribe"];
-      deviceTopic.replace("<mac>", it_roof->first);
-      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+        it_roof++;
+      }
+    } else if (eventType == WS_SERVER_CARPARK_UPDATE) {
+      StaticJsonDocument<512> config;
+      this->getConfiguration(config, DEVICE_CAR_PARK_TYPE);
+      uint command = json["command"].as<uint>();
 
-      it_roof++;
-    }
-  } else if (eventType == WS_SERVER_CARPARK_UPDATE) {
-    StaticJsonDocument<512> config;
-    this->getConfiguration(config, DEVICE_CAR_PARK_TYPE);
-    uint command = json["command"].as<uint>();
+      StaticJsonDocument<256> doc;
+      doc["command"] = command;
 
-    StaticJsonDocument<256> doc;
-    doc["command"] = command;
+      String payload;
+      serializeJson(doc, payload);
 
-    String payload;
-    serializeJson(doc, payload);
+      auto it_car_park = _car_park_status.begin();
+      while (it_car_park != _car_park_status.end()) {
+        it_car_park->second = command;
 
-    auto it_car_park = _car_park_status.begin();
-    while (it_car_park != _car_park_status.end()) {
-      it_car_park->second = command;
+        // Push command to each device through MQTT
+        String deviceTopic = config["topicToSubscribe"];
+        deviceTopic.replace("<mac>", it_car_park->first);
+        _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
 
-      // Push command to each device through MQTT
-      String deviceTopic = config["topicToSubscribe"];
-      deviceTopic.replace("<mac>", it_car_park->first);
-      _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
-
-      it_car_park++;
+        it_car_park++;
+      }
     }
   }
 }
@@ -420,7 +420,7 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
 
           char event[128];
           sprintf(event, DEVICE_RFID_ACCESS_DENIED, card);
-          
+
           // Push intrusion event on MySQL
           MySqlWrapper::getInstance().insertEvent(DEVICE_EVENT_CATEGORY, String(event), mac_address);
         }
@@ -752,7 +752,7 @@ void MasterController::sendCommandToRoof(int command)
 
 String MasterController::buildJsonCarParkState()
 {
-  DynamicJsonDocument doc(1536);
+  DynamicJsonDocument doc(4096);
   doc["event"] = WS_BOOT;
 
   // 1. Alarms status
@@ -792,6 +792,7 @@ String MasterController::buildJsonCarParkState()
   }
 
   // 5. Devices
+  rows.clear();
   MySqlWrapper::getInstance().getDevices(columns, rows);
 
   JsonObject devices = doc.createNestedObject("devices");
@@ -821,6 +822,7 @@ String MasterController::buildJsonCarParkState()
 
   String payload;
   serializeJson(doc, payload);
+  Serial.println(payload);
 
   return payload;
 }
