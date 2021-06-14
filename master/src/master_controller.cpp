@@ -163,6 +163,7 @@ void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *cli
       StaticJsonDocument<512> config;
       this->getConfiguration(config, DEVICE_CAR_PARK_TYPE);
       uint command = json["command"].as<uint>();
+      String mac = json["mac"].as<String>();
 
       StaticJsonDocument<256> doc;
       doc["command"] = command;
@@ -172,13 +173,14 @@ void MasterController::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *cli
 
       auto it_car_park = _car_park_status.begin();
       while (it_car_park != _car_park_status.end()) {
-        it_car_park->second = command;
+        if (it_car_park->first == mac) {
+          it_car_park->second = command;
 
-        // Push command to each device through MQTT
-        String deviceTopic = config["topicToSubscribe"];
-        deviceTopic.replace("<mac>", it_car_park->first);
-        _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
-
+          // Push command to each device through MQTT
+          String deviceTopic = config["topicToSubscribe"];
+          deviceTopic.replace("<mac>", it_car_park->first);
+          _mqtt_writer.connect().publish(deviceTopic, payload, false, 1);
+        }
         it_car_park++;
       }
     }

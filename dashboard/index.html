@@ -195,7 +195,7 @@ const app = new Vue({
   },
 
   mounted () {
-    this.ws = new WebSocket('ws://192.168.1.148/ws')
+    this.ws = new WebSocket('ws://87.8.162.239:52619/ws')
     // this.ws = new WebSocket('ws://localhost:6789')
     this.ws.onopen = () => console.log('Connected')
     this.ws.onerror = (error) => console.err('Error: ' + error)
