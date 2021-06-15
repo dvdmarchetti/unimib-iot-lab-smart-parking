@@ -2,15 +2,22 @@
 #define __ENTRANCE_CONTROLLER__
 
 #include <ArduinoJson.h>
+#include <ESPNtpClient.h>
 #include "../config.h"
 #include "wifi_manager.h"
+#include "display.h"
+#include "eeprom_manager.hpp"
 #include "mqtt_receiver.h"
 #include "mqtt_wrapper.h"
 #include "rfid_receiver.h"
 #include "rfid_reader.h"
-#include "display.h"
 
 #define ENTRANCE_JSON_BUFFER_SIZE 256
+
+typedef struct {
+  time_t last_update;
+  char value[396];
+} time_config;
 
 class EntranceController : public MqttReceiver, public RfidReceiver
 {
@@ -27,6 +34,7 @@ private:
   MqttWrapper _mqtt_writer;
   RfidReader _reader;
   Display _display;
+  EEPROMManager<time_config> _eeprom_manager;
 
   // State
   enum State { WAIT_CONFIGURATION, OFF, ON, VERIFY, MANAGE };
@@ -41,6 +49,7 @@ private:
   ulong _last_action = 0;
 
   // Dynamic configuration
+  time_config _config;
   bool _has_requested_configuration = false;
   String _topic_commands;
   String _topic_values;
@@ -51,6 +60,7 @@ private:
 
   void read_sensors();
   void fsm_loop();
+  void read_config_from_eeprom();
   void update_display();
   void manage_fsm_loop(StaticJsonDocument<ENTRANCE_JSON_BUFFER_SIZE> &doc);
 

@@ -1,7 +1,8 @@
 #define SS_PIN D8
 #define RST_PIN D3
 
-#define PHOTORESISTOR_PIN A0
+#define DEEP_SLEEP_INTERVAL 20000
+#define CONFIG_INTERVAL 300
 
 // Json payloads
 #define JSON_KEY_DEVICE_MAC "mac"

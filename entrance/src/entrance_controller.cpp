@@ -26,6 +26,14 @@ void EntranceController::setup()
   _wifi_manager.begin();
   _wifi_manager.ensure_wifi_is_connected();
 
+  Serial.println(F("[CONTROLLER] Setting up NTP"));
+  NTP.begin();
+  NTP.getTime();
+
+  Serial.println(F("[CONTROLLER] Setting up EEPROM"));
+  _eeprom_manager.begin(512);
+  // _eeprom_manager.reset();
+
   this->setup_mqtt();
 }
 
@@ -50,7 +58,7 @@ void EntranceController::setup_mqtt()
 void EntranceController::loop()
 {
   if (_current_state == ON) {
-    if (millis() - _last_action > 10000) {
+    if (millis() - _last_action > DEEP_SLEEP_INTERVAL) {
       Serial.println(F("[CONTROLLER] Activating Deep Sleep"));
       _display.turnOff();
       ESP.deepSleep(ESP.deepSleepMax());
@@ -90,7 +98,18 @@ void EntranceController::fsm_loop()
         return;
       }
 
-      {
+      _has_requested_configuration = true;
+      this->read_config_from_eeprom();
+      Serial.println(F("[CONTROLLER] EEPROM Read:"));
+      Serial.print(F(" > Last update:"));
+      Serial.println(_config.last_update);
+      Serial.print(F(" > Config:"));
+      Serial.println(_config.value);
+
+      Serial.print(F("> NTP: "));
+      Serial.println(NTP.getLastNTPSync());
+
+      if (NTP.getLastNTPSync() - _config.last_update >= CONFIG_INTERVAL) {
         String payload;
         this->device_payload(payload);
 
@@ -101,11 +120,39 @@ void EntranceController::fsm_loop()
 
         _mqtt_writer.connect().publish(MQTT_TOPIC_GLOBAL_CONFIG, payload, false, 2);
         _has_requested_configuration = true;
+      } else {
+        StaticJsonDocument<256> doc;
+        DeserializationError error = deserializeJson(doc, _config.value);
+        if (error) {
+          Serial.print(F("[CONTROLLER] Invalid cached configuration: "));
+          Serial.println(error.f_str());
+          break;
+        }
+
+        _topic_commands = doc["topicToSubscribe"].as<String>();
+        _topic_values = doc["topicToPublish"].as<String>();
+
+        _mqtt_reader.reconnect().subscribe(_topic_commands);
+
+        Serial.println(F("[CONTROLLER] Using cached configuration:"));
+        Serial.print(F(" > Commands topic: "));
+        Serial.println(_topic_commands);
+        Serial.print(F(" > Publish topic: "));
+        Serial.println(_topic_values);
+
+        _current_state = ON;
+        _repaint = true;
+        this->reset_deep_sleep_timer();
       }
       break;
   }
 
   last_execution = millis();
+}
+
+void EntranceController::read_config_from_eeprom()
+{
+  _eeprom_manager.read(0, _config);
 }
 
 void EntranceController::update_display()
@@ -181,6 +228,11 @@ void EntranceController::onMessageReceived(const String &topic, const String &pa
     Serial.println(_topic_commands);
     Serial.print(F(" > Publish topic: "));
     Serial.println(_topic_values);
+
+    _config.last_update = NTP.getLastNTPSync();
+    strcpy(_config.value, payload.c_str());
+    Serial.println(F("[CONTROLLER] Storing configuration in EEPROM "));
+    _eeprom_manager.write(0, _config);
 
     _current_state = ON;
     _repaint = true;
