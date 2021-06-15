@@ -12,7 +12,7 @@ EntranceController::EntranceController() :
 
 void EntranceController::setup()
 {
-  Serial.println(F("[CONTROLLER] Setting up Display"));
+  Serial.println(F("\n[CONTROLLER] Setting up Display"));
   _display.setup();
   _display.writeFirstRow(F("Smart Parking:"));
   _display.writeSecondRow(F("Booting..."));
@@ -29,6 +29,7 @@ void EntranceController::setup()
   Serial.println(F("[CONTROLLER] Setting up NTP"));
   NTP.begin();
   NTP.getTime();
+  delay(1000);
 
   Serial.println(F("[CONTROLLER] Setting up EEPROM"));
   _eeprom_manager.begin(512);
@@ -101,12 +102,11 @@ void EntranceController::fsm_loop()
       _has_requested_configuration = true;
       this->read_config_from_eeprom();
       Serial.println(F("[CONTROLLER] EEPROM Read:"));
-      Serial.print(F(" > Last update:"));
+      Serial.print(F(" > Last update: "));
       Serial.println(_config.last_update);
-      Serial.print(F(" > Config:"));
+      Serial.print(F(" > Config: "));
       Serial.println(_config.value);
-
-      Serial.print(F("> NTP: "));
+      Serial.print(F(" > NTP: "));
       Serial.println(NTP.getLastNTPSync());
 
       if (NTP.getLastNTPSync() - _config.last_update >= CONFIG_INTERVAL) {
