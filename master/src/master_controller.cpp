@@ -401,7 +401,7 @@ void MasterController::onMessageReceived(const String &topic, const String &payl
       payload["authorized"] = is_authorized;
 
       if (action == "verify") {
-        if (is_authorized) {
+        if (is_authorized && !is_master) {
           StaticJsonDocument<512> config;
           this->getConfiguration(config, DEVICE_GATE_TYPE);
 

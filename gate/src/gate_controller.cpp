@@ -13,7 +13,7 @@ GateController::GateController() :
 void GateController::setup()
 {
   Serial.println(F("[CONTROLLER] Setting up entrance gate"));
-  _servo.move(5); // Return servo to init position.
+  _servo.move(4); // Return servo to init position.
 
   Serial.println(F("[CONTROLLER] Setting up Wifi"));
   _wifi_manager.begin();
@@ -72,7 +72,7 @@ void GateController::fsm_loop()
 
     case CLOSE:
       _opened = false;
-      // _servo.move(5);
+      // _servo.move(4);
       break;
 
     case OPEN:
@@ -83,7 +83,7 @@ void GateController::fsm_loop()
         _start_open = millis();
       } else if (millis() - _start_open >= _open_time) {
         _current_state = CLOSE;
-        _servo.move(5);
+        _servo.move(4);
 
         StaticJsonDocument<JSON_OBJECT_SIZE(4)> doc;
         doc["mac"] = DEVICE_MAC_ADDRESS;
@@ -132,7 +132,7 @@ void GateController::onMessageReceived(const String &topic, const String &payloa
 
     if (status == 0) {
       _current_state = CLOSE;
-      _servo.move(5);
+      _servo.move(4);
     } else if (status == 1) {
       _current_state = OPEN;
       _servo.move(90);
